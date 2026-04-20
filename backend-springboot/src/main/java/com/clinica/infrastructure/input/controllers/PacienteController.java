@@ -10,7 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/pacientes")
-@CrossOrigin(origins = "*") // Fundamental para que tu React pueda conectarse sin errores de CORS
+@CrossOrigin(origins = "http://localhost:3000") // <--- Modificado específicamente para tu React
 public class PacienteController {
 
     private final GestionarPacienteUseCase gestionarPacienteUseCase;
