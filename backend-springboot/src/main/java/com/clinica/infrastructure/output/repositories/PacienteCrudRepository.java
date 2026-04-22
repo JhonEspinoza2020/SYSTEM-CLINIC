@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface PacienteCrudRepository extends JpaRepository<PacienteJpaEntity, String> {
     Optional<PacienteJpaEntity> findByDni(String dni);
+    Optional<PacienteJpaEntity> findByIdDoctor(String idDoctor);
 }

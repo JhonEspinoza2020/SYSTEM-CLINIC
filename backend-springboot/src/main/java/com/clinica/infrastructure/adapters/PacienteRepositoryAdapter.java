@@ -24,10 +24,15 @@ public class PacienteRepositoryAdapter implements PacienteRepositoryPort {
         PacienteJpaEntity entity = PacienteJpaEntity.builder()
                 .id(paciente.getId())
                 .nombre(paciente.getNombre())
+                .apellidoPaterno(paciente.getApellidoPaterno()) // <-- ASEGURA ESTA LÍNEA
+                .apellidoMaterno(paciente.getApellidoMaterno()) // <-- ASEGURA ESTA LÍNEA
                 .dni(paciente.getDni())
                 .edad(paciente.getEdad())
                 .tipoSangre(paciente.getTipoSangre())
                 .alergiasConocidas(paciente.getAlergiasConocidas())
+                .riesgoPredicho(paciente.getRiesgoPredicho())
+                .recomendacionIa(paciente.getRecomendacionIa())
+                .idDoctor(paciente.getIdDoctor()) 
                 .build();
 
         PacienteJpaEntity guardado = crudRepository.save(entity);
@@ -35,30 +40,35 @@ public class PacienteRepositoryAdapter implements PacienteRepositoryPort {
     }
 
     @Override
-    public Optional<Paciente> buscarPorId(String id) {
-        return crudRepository.findById(id).map(this::mapToDomain);
-    }
-
-    @Override
-    public Optional<Paciente> buscarPorDni(String dni) {
-        return crudRepository.findByDni(dni).map(this::mapToDomain);
-    }
-
-    @Override
-    public List<Paciente> listarTodos() {
-        return crudRepository.findAll().stream()
+    public List<Paciente> buscarPorIdDoctor(String idDoctor) {
+        return crudRepository.findByIdDoctor(idDoctor).stream()
                 .map(this::mapToDomain)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public void eliminar(String id) {
+        crudRepository.deleteById(id);
+    }
+
+    // Métodos obligatorios
+    @Override public Optional<Paciente> buscarPorId(String id) { return crudRepository.findById(id).map(this::mapToDomain); }
+    @Override public Optional<Paciente> buscarPorDni(String dni) { return crudRepository.findByDni(dni).map(this::mapToDomain); }
+    @Override public List<Paciente> listarTodos() { return crudRepository.findAll().stream().map(this::mapToDomain).collect(Collectors.toList()); }
 
     private Paciente mapToDomain(PacienteJpaEntity entity) {
         return Paciente.builder()
                 .id(entity.getId())
                 .nombre(entity.getNombre())
+                .apellidoPaterno(entity.getApellidoPaterno()) // <-- ESTO ES LO QUE FALTABA
+                .apellidoMaterno(entity.getApellidoMaterno()) // <-- ESTO ES LO QUE FALTABA
                 .dni(entity.getDni())
                 .edad(entity.getEdad())
                 .tipoSangre(entity.getTipoSangre())
                 .alergiasConocidas(entity.getAlergiasConocidas())
+                .riesgoPredicho(entity.getRiesgoPredicho())
+                .recomendacionIa(entity.getRecomendacionIa())
+                .idDoctor(entity.getIdDoctor()) 
                 .build();
     }
 }

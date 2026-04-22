@@ -13,6 +13,9 @@ public interface PacienteRepositoryPort {
     Optional<Paciente> buscarPorDni(String dni);
     
     List<Paciente> listarTodos();
-    
-    // Aquí podrías agregar más adelante algo como: boolean existePorDni(String dni);
+
+    List<Paciente> buscarPorIdDoctor(String idDoctor);    
+
+    // --- NUEVO MÉTODO PARA ELIMINAR ---
+    void eliminar(String id);
 }

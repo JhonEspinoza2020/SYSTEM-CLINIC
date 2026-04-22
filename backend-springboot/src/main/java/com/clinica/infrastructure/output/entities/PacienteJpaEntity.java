@@ -26,6 +26,12 @@ public class PacienteJpaEntity {
     @Column(name = "nombre", length = 150, nullable = false)
     private String nombre;
 
+    @Column(name = "apellido_paterno", length = 20)
+    private String apellidoPaterno;
+
+    @Column(name = "apellido_materno", length = 20)
+    private String apellidoMaterno;
+
     @Column(name = "dni", length = 15, unique = true, nullable = false)
     private String dni;
 
@@ -37,4 +43,13 @@ public class PacienteJpaEntity {
 
     @Column(name = "alergias_conocidas")
     private String alergiasConocidas;
+
+    @Column(name = "riesgo_predicho", length = 50)
+    private String riesgoPredicho;
+
+    @Column(name = "recomendacion_ia", length = 500)
+    private String recomendacionIa;
+
+    @Column(name = "id_doctor", length = 36)
+    private String idDoctor;
 }

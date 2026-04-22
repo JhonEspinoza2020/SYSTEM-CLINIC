@@ -12,13 +12,15 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class Paciente {
-    
-    private String id; // nvarchar36 (UUID)
-    private String nombre; // nvarchar150
-    private String dni; // nvarchar15
-    
+    private String id;
+    private String nombre;
+    private String apellidoPaterno;
+    private String apellidoMaterno;
+    private String dni;
     private Integer edad;
     private String tipoSangre;
-    private String alergiasConocidas; // Importante para la IA preventiva
-
+    private String alergiasConocidas;
+    private String riesgoPredicho;
+    private String recomendacionIa;
+    private String idDoctor;
 }

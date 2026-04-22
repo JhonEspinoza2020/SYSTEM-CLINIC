@@ -3,53 +3,63 @@ package com.clinica.application.services;
 import com.clinica.application.useCases.GestionarPacienteUseCase;
 import com.clinica.domain.entities.Paciente;
 import com.clinica.domain.ports.PacienteRepositoryPort;
-
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import java.util.*;
 
-import java.util.List;
-import java.util.UUID;
-
-// Usamos @Service para que Spring Boot reconozca esta clase y la inyecte automáticamente
 @Service
 public class PacienteServiceImpl implements GestionarPacienteUseCase {
 
     private final PacienteRepositoryPort pacienteRepositoryPort;
 
-    // Inyección de dependencias a través del constructor
     public PacienteServiceImpl(PacienteRepositoryPort pacienteRepositoryPort) {
         this.pacienteRepositoryPort = pacienteRepositoryPort;
     }
 
     @Override
     public Paciente registrarNuevoPaciente(Paciente paciente) {
-        // Regla de negocio: Generar un UUID si el paciente es nuevo
         if (paciente.getId() == null || paciente.getId().isEmpty()) {
             paciente.setId(UUID.randomUUID().toString());
         }
         
-        // Regla de negocio: Verificar si ya existe alguien con ese DNI (Opcional, pero recomendado)
-        pacienteRepositoryPort.buscarPorDni(paciente.getDni()).ifPresent(p -> {
-            throw new RuntimeException("Ya existe un paciente registrado con el DNI: " + paciente.getDni());
-        });
+        // 1. CONEXIÓN AL MICROSERVICIO DE IA (Corregido para Python)
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            Map<String, Object> requestIa = new HashMap<>();
+            
+            requestIa.put("edad", paciente.getEdad());
+            requestIa.put("tipo_sangre", paciente.getTipoSangre());
+            // IMPORTANTE: Python espera "alergias_conocidas"
+            requestIa.put("alergias_conocidas", paciente.getAlergiasConocidas());
 
-        // Llamamos al puerto para que lo guarde (no nos importa cómo lo hace)
+            String urlIA = "http://127.0.0.1:8000/api/ia/evaluar-riesgo";
+            ResponseEntity<Map> response = restTemplate.postForEntity(urlIA, requestIa, Map.class);
+            
+            if (response.getBody() != null) {
+                paciente.setRiesgoPredicho((String) response.getBody().get("riesgo_predicho"));
+                paciente.setRecomendacionIa((String) response.getBody().get("recomendacion_ia"));
+            }
+        } catch (Exception e) {
+            paciente.setRiesgoPredicho("PENDIENTE");
+            paciente.setRecomendacionIa("IA no disponible: " + e.getMessage());
+        }
+
         return pacienteRepositoryPort.guardar(paciente);
     }
 
     @Override
-    public Paciente obtenerPacientePorId(String id) {
-        return pacienteRepositoryPort.buscarPorId(id)
-                .orElseThrow(() -> new RuntimeException("Paciente no encontrado con ID: " + id));
+    public List<Paciente> listarPacientesPorDoctor(String idDoctor) {
+        return pacienteRepositoryPort.buscarPorIdDoctor(idDoctor);
     }
 
     @Override
-    public Paciente obtenerPacientePorDni(String dni) {
-        return pacienteRepositoryPort.buscarPorDni(dni)
-                .orElseThrow(() -> new RuntimeException("Paciente no encontrado con DNI: " + dni));
+    public void eliminarPaciente(String id) {
+        pacienteRepositoryPort.eliminar(id);
     }
 
     @Override
-    public List<Paciente> listarTodosLosPacientes() {
-        return pacienteRepositoryPort.listarTodos();
-    }
+    public Paciente obtenerPacientePorId(String id) { return pacienteRepositoryPort.buscarPorId(id).orElse(null); }
+    @Override public Paciente obtenerPacientePorDni(String dni) { return pacienteRepositoryPort.buscarPorDni(dni).orElse(null); }
+    @Override public List<Paciente> listarTodosLosPacientes() { return pacienteRepositoryPort.listarTodos(); }
 }
