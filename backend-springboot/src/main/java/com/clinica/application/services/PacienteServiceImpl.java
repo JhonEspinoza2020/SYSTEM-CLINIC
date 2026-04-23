@@ -17,29 +17,33 @@ public class PacienteServiceImpl implements GestionarPacienteUseCase {
         this.pacienteRepositoryPort = pacienteRepositoryPort;
     }
 
-@Override
+    @Override
     public Paciente registrarNuevoPaciente(Paciente paciente) {
         if (paciente.getId() == null || paciente.getId().isEmpty()) {
             paciente.setId(UUID.randomUUID().toString());
         }
 
-        // --- NUEVA VALIDACIÓN: BLOQUEAR DNI DUPLICADO ---
+        // --- VALIDACIÓN: BLOQUEAR DNI DUPLICADO ---
         pacienteRepositoryPort.buscarPorDni(paciente.getDni()).ifPresent(p -> {
             throw new RuntimeException("El DNI " + paciente.getDni() + " ya está registrado en el sistema.");
         });
-        // ------------------------------------------------
         
-        // 2. IA (Python) - Lo envolvemos en un try/catch
-        
-        // 1. CONEXIÓN AL MICROSERVICIO DE IA (Corregido para Python)
+        // 1. CONEXIÓN AL MICROSERVICIO DE IA EN PYTHON
         try {
             RestTemplate restTemplate = new RestTemplate();
             Map<String, Object> requestIa = new HashMap<>();
             
+            // Datos generales
             requestIa.put("edad", paciente.getEdad());
             requestIa.put("tipo_sangre", paciente.getTipoSangre());
-            // IMPORTANTE: Python espera "alergias_conocidas"
-            requestIa.put("alergias_conocidas", paciente.getAlergiasConocidas());
+            requestIa.put("alergias_conocidas", paciente.getAlergiasConocidas() != null ? paciente.getAlergiasConocidas() : "Ninguna");
+
+            // --- NUEVOS DATOS PARA LA IA POR ESPECIALIDAD ---
+            requestIa.put("peso_nacer", paciente.getPesoNacer());
+            requestIa.put("frecuencia_cardiaca", paciente.getFrecuenciaCardiaca());
+            requestIa.put("escala_glasgow", paciente.getEscalaGlasgow());
+            requestIa.put("temperatura", paciente.getTemperatura());
+            requestIa.put("nivel_dolor", paciente.getNivelDolor());
 
             String urlIA = "http://127.0.0.1:8000/api/ia/evaluar-riesgo";
             ResponseEntity<Map> response = restTemplate.postForEntity(urlIA, requestIa, Map.class);
@@ -68,15 +72,19 @@ public class PacienteServiceImpl implements GestionarPacienteUseCase {
 
     @Override
     public Paciente obtenerPacientePorId(String id) { return pacienteRepositoryPort.buscarPorId(id).orElse(null); }
-    @Override public Paciente obtenerPacientePorDni(String dni) { return pacienteRepositoryPort.buscarPorDni(dni).orElse(null); }
-    @Override public List<Paciente> listarTodosLosPacientes() { return pacienteRepositoryPort.listarTodos(); }
+    
+    @Override 
+    public Paciente obtenerPacientePorDni(String dni) { return pacienteRepositoryPort.buscarPorDni(dni).orElse(null); }
+    
+    @Override 
+    public List<Paciente> listarTodosLosPacientes() { return pacienteRepositoryPort.listarTodos(); }
+    
     @Override
     public Paciente actualizarPaciente(String id, Paciente pacienteActualizado) {
-        // 1. Buscamos al paciente original en la base de datos
         Paciente pacienteExistente = pacienteRepositoryPort.buscarPorId(id)
                 .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
 
-        // 2. Protegemos los datos que NO deben cambiar (DNI, Cama, Fecha, Historia, ID Doctor)
+        // Protegemos los datos que NO deben cambiar
         pacienteActualizado.setId(pacienteExistente.getId());
         pacienteActualizado.setDni(pacienteExistente.getDni());
         pacienteActualizado.setNumeroCama(pacienteExistente.getNumeroCama());
@@ -84,13 +92,21 @@ public class PacienteServiceImpl implements GestionarPacienteUseCase {
         pacienteActualizado.setFechaRegistro(pacienteExistente.getFechaRegistro());
         pacienteActualizado.setIdDoctor(pacienteExistente.getIdDoctor());
 
-        // 3. Volvemos a consultar a la IA por si editaron las alergias o la edad
+        // Volvemos a consultar a la IA
         try {
             RestTemplate restTemplate = new RestTemplate();
             Map<String, Object> requestIa = new HashMap<>();
+            
             requestIa.put("edad", pacienteActualizado.getEdad());
             requestIa.put("tipo_sangre", pacienteActualizado.getTipoSangre());
             requestIa.put("alergias_conocidas", pacienteActualizado.getAlergiasConocidas() != null ? pacienteActualizado.getAlergiasConocidas() : "Ninguna");
+            
+            // --- NUEVOS DATOS PARA LA IA AL ACTUALIZAR ---
+            requestIa.put("peso_nacer", pacienteActualizado.getPesoNacer());
+            requestIa.put("frecuencia_cardiaca", pacienteActualizado.getFrecuenciaCardiaca());
+            requestIa.put("escala_glasgow", pacienteActualizado.getEscalaGlasgow());
+            requestIa.put("temperatura", pacienteActualizado.getTemperatura());
+            requestIa.put("nivel_dolor", pacienteActualizado.getNivelDolor());
 
             String urlIA = "http://127.0.0.1:8000/api/ia/evaluar-riesgo";
             ResponseEntity<Map> response = restTemplate.postForEntity(urlIA, requestIa, Map.class);
@@ -100,12 +116,10 @@ public class PacienteServiceImpl implements GestionarPacienteUseCase {
                 pacienteActualizado.setRecomendacionIa((String) response.getBody().get("recomendacion_ia"));
             }
         } catch (Exception e) {
-            // Si la IA falla, mantenemos el riesgo que ya tenía antes
             pacienteActualizado.setRiesgoPredicho(pacienteExistente.getRiesgoPredicho());
             pacienteActualizado.setRecomendacionIa(pacienteExistente.getRecomendacionIa());
         }
 
-        // 4. Guardamos los cambios en MySQL
         return pacienteRepositoryPort.guardar(pacienteActualizado);
     }
 }

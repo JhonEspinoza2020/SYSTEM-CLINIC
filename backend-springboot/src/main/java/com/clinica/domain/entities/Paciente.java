@@ -27,4 +27,10 @@ public class Paciente {
     private Integer numeroCama;
     private String historiaClinica;
     private String fechaRegistro;
+    private Double pesoNacer;
+    private Integer frecuenciaCardiaca;
+    private Integer escalaGlasgow;
+    private Double temperatura;
+    private Integer nivelDolor;
+
 }

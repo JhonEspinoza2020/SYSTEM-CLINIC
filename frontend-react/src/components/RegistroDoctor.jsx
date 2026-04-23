@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import Swal from 'sweetalert2'; // <-- IMPORTAMOS SWEETALERT
+import Swal from 'sweetalert2'; 
 
 const RegistroDoctor = () => {
     const [doctor, setDoctor] = useState({ 
@@ -15,13 +15,20 @@ const RegistroDoctor = () => {
     const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
     const [correoError, setCorreoError] = useState(''); 
     const [mostrarPassword, setMostrarPassword] = useState(false); 
-    const [isLoading, setIsLoading] = useState(false); // <-- ESTADO DE CARGA
+    const [isLoading, setIsLoading] = useState(false); 
     const navigate = useNavigate();
 
     const validarCorreo = (correo) => {
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (correo && !regex.test(correo)) {
+        const parteLocal = correo.split('@')[0]; // Saca lo que está antes del @
+
+        if (correo.length > 50) {
+            setCorreoError('El correo es demasiado largo (máximo 50 caracteres)');
+        } else if (correo && !regex.test(correo)) {
             setCorreoError('Formato de correo inválido');
+        } else if (parteLocal && /^\d+$/.test(parteLocal)) {
+            // Verifica si lo que está antes del @ son solo números
+            setCorreoError('El correo no puede tener solo números');
         } else {
             setCorreoError('');
         }
@@ -52,7 +59,6 @@ const RegistroDoctor = () => {
         
         if (correoError || doctor.dniDoctor.length !== 8) return;
 
-        // Validaciones estrictas de NovaSalud
         const nombre = doctor.nombreCompleto.trim();
         if (!/[aeiouáéíóúAEIOUÁÉÍÓÚ]/.test(nombre)) {
             Swal.fire('Nombre Inválido', 'El nombre debe contener vocales', 'warning');
@@ -60,7 +66,7 @@ const RegistroDoctor = () => {
             return;
         }
 
-        setIsLoading(true); // <-- ACTIVAR SPINNER
+        setIsLoading(true); 
 
         try {
             const payload = { ...doctor, nombreCompleto: nombre };
@@ -68,7 +74,6 @@ const RegistroDoctor = () => {
             
             if (respuesta.status === 201) {
                 setMensaje({ texto: '¡Registro NovaSalud Exitoso! Redirigiendo...', tipo: 'exito' });
-                // ALERTA MODERNA DE ÉXITO
                 Swal.fire({
                     title: '¡Registro Exitoso!',
                     text: 'Bienvenido a la red NovaSalud. Redirigiendo...',
@@ -82,13 +87,12 @@ const RegistroDoctor = () => {
         } catch (err) {
             Swal.fire('Error en Registro', 'El correo o DNI ya se encuentran registrados', 'error');
             setMensaje({ texto: 'El correo o DNI ya se encuentran registrados', tipo: 'error' });
-            setIsLoading(false); // <-- DESACTIVAR SPINNER SI FALLA
+            setIsLoading(false); 
         }
     };
 
     return (
         <div className="container-registro">
-            {/* BLOQUE DE ESTILOS CSS CON ANIMACIÓN DE ENTRADA */}
             <style>{`
                 .container-registro {
                     min-height: 100vh;
@@ -162,7 +166,6 @@ const RegistroDoctor = () => {
 
             <div className="card-registro-nova">
                 <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                    {/* LOGO N TÉCNICA - GARANTIZADA N Y NO M */}
                     <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ margin: '0 auto' }}>
                         <rect width="100" height="100" rx="22" fill="#1A365D"/>
                         <path d="M28 72 V28 L72 72 V28" stroke="#00A8CC" strokeWidth="10" strokeLinecap="square" strokeLinejoin="miter"/>
@@ -195,7 +198,8 @@ const RegistroDoctor = () => {
                         </div>
                         <div style={{ flex: 1.5 }}>
                             <label style={labelStyle}>CORREO</label>
-                            <input type="email" name="correo" value={doctor.correo} onChange={handleChange} required className="nova-input" style={{ borderColor: correoError ? '#e53e3e' : '#e2e8f0' }} disabled={isLoading} />
+                            <input type="email" name="correo" value={doctor.correo} onChange={handleChange} required maxLength="50" className="nova-input" style={{ borderColor: correoError ? '#e53e3e' : '#e2e8f0', marginBottom: correoError ? '5px' : '16px' }} disabled={isLoading} />
+                            {correoError && <span style={{ color: '#e53e3e', fontSize: '11px', display: 'block', marginBottom: '16px', fontWeight: 'bold' }}>{correoError}</span>}
                         </div>
                     </div>
                     

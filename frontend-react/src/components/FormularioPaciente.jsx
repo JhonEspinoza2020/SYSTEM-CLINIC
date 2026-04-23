@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PacienteService from '../services/PacienteService';
-import Swal from 'sweetalert2'; // <-- IMPORTACIÓN DE SWEETALERT
+import Swal from 'sweetalert2'; 
 
 const FormularioPaciente = () => {
     // Estados base
@@ -17,9 +17,9 @@ const FormularioPaciente = () => {
     const [especialidad, setEspecialidad] = useState('');
     const [dniError, setDniError] = useState('');
     
-    const [isLoading, setIsLoading] = useState(false); // <-- NUEVO ESTADO DE CARGA (SPINNER)
+    const [isLoading, setIsLoading] = useState(false); 
 
-    // Estados de especialidades (TODOS RECUPERADOS)
+    // Estados de especialidades
     const [presionArterial, setPresionArterial] = useState('');
     const [frecuenciaCardiaca, setFrecuenciaCardiaca] = useState('');
     const [colesterol, setColesterol] = useState('');
@@ -30,7 +30,7 @@ const FormularioPaciente = () => {
     const [frecuenciaCefaleas, setFrecuenciaCefaleas] = useState('');
     const [zonaLesion, setZonaLesion] = useState('');
     const [nivelDolor, setNivelDolor] = useState('');
-    const [motivoConsulta, setMotivoConsulta] = useState(''); // LO USAREMOS PARA EL TEXTO MANUAL
+    const [motivoConsulta, setMotivoConsulta] = useState(''); 
     const [temperatura, setTemperatura] = useState('');
 
     useEffect(() => {
@@ -57,7 +57,12 @@ const FormularioPaciente = () => {
     const guardarPaciente = (e) => {
         e.preventDefault();
 
-        // --- BLOQUE DE SEGURIDAD CLÍNICA CON SWEETALERT ---
+        if (especialidad === 'Pediatría' && (pesoNacer < 0.5 || pesoNacer > 6.0)) {
+            return Swal.fire('Peso Inválido', 'El peso al nacer debe estar entre 0.5 kg y 6.0 kg.', 'warning');
+        }
+        if (especialidad === 'Cardiología' && (frecuenciaCardiaca < 30 || frecuenciaCardiaca > 250)) {
+            return Swal.fire('Frecuencia Inválida', 'La frecuencia cardíaca debe estar entre 30 y 250 bpm.', 'warning');
+        }
         if (especialidad === 'Traumatología' && !zonaLesion) {
             return Swal.fire('Dato Incompleto', 'Debe seleccionar una zona del cuerpo humano.', 'warning');
         }
@@ -74,7 +79,7 @@ const FormularioPaciente = () => {
         if (!idDoctor) return Swal.fire('Error', 'Error de sesión. Vuelva a ingresar.', 'error');
         if (dni.length !== 8) return;
 
-        setIsLoading(true); // <-- ACTIVAR SPINNER
+        setIsLoading(true); 
 
         const numeroCamaGenerado = Math.floor(Math.random() * 100) + 1; 
         const historiaClinicaGenerada = "HC-" + Math.floor(10000 + Math.random() * 90000); 
@@ -109,7 +114,7 @@ const FormularioPaciente = () => {
             })
             .catch(() => {
                 Swal.fire('Error de Registro', 'El DNI ya se encuentra registrado en el sistema.', 'error');
-                setIsLoading(false); // <-- DESACTIVAR SPINNER SI HAY ERROR
+                setIsLoading(false); 
             });
     };
 
@@ -169,9 +174,31 @@ const FormularioPaciente = () => {
                         </div>
                     </div>
 
+                    {/* ======================================================= */}
+                    {/* AQUÍ ESTÁ EL NUEVO INPUT CON SUGERENCIAS (DATALIST) */}
+                    {/* ======================================================= */}
                     <div style={{ marginBottom: '30px' }}>
                         <label style={labelStyle}>Alergias Conocidas (Importante para la IA)</label>
-                        <input className="input-clinico" type="text" value={alergiasConocidas} onChange={(e) => setAlergiasConocidas(e.target.value)} placeholder="Ninguna / Desconocidas" style={inputBaseStyle} disabled={isLoading}/>
+                        <input 
+                            className="input-clinico" 
+                            type="text" 
+                            list="sugerencias-alergias"
+                            value={alergiasConocidas} 
+                            onChange={(e) => setAlergiasConocidas(e.target.value)} 
+                            placeholder="Ej: Penicilina, Látex, Ninguna..." 
+                            style={inputBaseStyle} 
+                            disabled={isLoading}
+                        />
+                        <datalist id="sugerencias-alergias">
+                            <option value="Ninguna" />
+                            <option value="Desconocidas" />
+                            <option value="Penicilina" />
+                            <option value="AINEs (Ibuprofeno, Aspirina)" />
+                            <option value="Anestesia local o general" />
+                            <option value="Látex" />
+                            <option value="Mariscos / Pescado" />
+                            <option value="Frutos secos (Maní, Nueces)" />
+                        </datalist>
                     </div>
 
                     {especialidad === 'Cardiología' && ( 
@@ -210,14 +237,7 @@ const FormularioPaciente = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}> 
                                 <div>
                                     <label style={labelStyle}>Zona Anatómica Principal</label>
-                                    <select 
-                                        className="input-clinico"
-                                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #CBD5E1', background: 'white' }}
-                                        value={zonaLesion} 
-                                        onChange={(e)=>setZonaLesion(e.target.value)} 
-                                        required
-                                        disabled={isLoading}
-                                    >
+                                    <select className="input-clinico" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #CBD5E1', background: 'white' }} value={zonaLesion} onChange={(e)=>setZonaLesion(e.target.value)} required disabled={isLoading}>
                                         <option value="">-- Seleccione parte del cuerpo --</option>
                                         <option value="Cráneo / Cabeza">Cráneo / Cabeza</option>
                                         <option value="Hombro">Hombro</option>
@@ -236,15 +256,7 @@ const FormularioPaciente = () => {
                             </div> 
                             <div style={{ marginTop: '20px' }}>
                                 <label style={labelStyle}>Detalles Clínicos (Escritura Manual para el Médico)</label>
-                                <textarea 
-                                    className="input-clinico"
-                                    style={{ ...inputBaseStyle, height: '80px', resize: 'none' }}
-                                    value={motivoConsulta}
-                                    onChange={(e) => setMotivoConsulta(e.target.value)}
-                                    placeholder="Ej: Paciente presenta dolor punzante tras caída, posible fisura expuesta..."
-                                    required
-                                    disabled={isLoading}
-                                />
+                                <textarea className="input-clinico" style={{ ...inputBaseStyle, height: '80px', resize: 'none' }} value={motivoConsulta} onChange={(e) => setMotivoConsulta(e.target.value)} placeholder="Ej: Paciente presenta dolor punzante tras caída, posible fisura expuesta..." required disabled={isLoading} />
                             </div>
                         </div> 
                     )}

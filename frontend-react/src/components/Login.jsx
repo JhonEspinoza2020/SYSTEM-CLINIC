@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import Swal from 'sweetalert2'; // <-- IMPORTAMOS SWEETALERT
+import Swal from 'sweetalert2'; 
 
 const Login = () => {
     const [credentials, setCredentials] = useState({ correo: '', password: '', especialidad: '' });
     const [error, setError] = useState('');
     const [correoError, setCorreoError] = useState(''); 
     const [mostrarPassword, setMostrarPassword] = useState(false); 
-    const [isLoading, setIsLoading] = useState(false); // <-- ESTADO DE CARGA (SPINNER)
+    const [isLoading, setIsLoading] = useState(false); 
     const navigate = useNavigate();
+
+    const [vista, setVista] = useState('login'); 
+    const [datosRecuperacion, setDatosRecuperacion] = useState({ correo: '', codigo: '', nueva: '', confirmar: '' });
 
     const validarCorreo = (correo) => {
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (correo && !regex.test(correo)) {
-            setCorreoError('Formato de correo inválido (ej: nombre@clinica.com)');
+            setCorreoError('Formato de correo inválido');
         } else {
             setCorreoError('');
         }
@@ -23,11 +26,7 @@ const Login = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         if (name === 'password') {
-            const forbiddenChars = /[<>"';]/g;
-            if (forbiddenChars.test(value)) {
-                setError("La contraseña contiene caracteres no permitidos.");
-                return; 
-            }
+            if (/[<>"';]/g.test(value)) return; 
         }
         setCredentials({ ...credentials, [name]: value });
         if (name === 'correo') validarCorreo(value);
@@ -36,7 +35,7 @@ const Login = () => {
     const iniciarSesion = async (e) => {
         e.preventDefault();
         setError('');
-        setIsLoading(true); // <-- ACTIVAMOS EL SPINNER
+        setIsLoading(true); 
 
         try {
             const respuesta = await axios.post('http://localhost:8080/api/auth/login', credentials);
@@ -44,13 +43,11 @@ const Login = () => {
                 const doctor = respuesta.data;
                 if (doctor.especialidad !== credentials.especialidad) {
                     Swal.fire('Acceso Denegado', `Registrado como ${doctor.especialidad}, no como ${credentials.especialidad}.`, 'error');
-                    setError(`Acceso denegado: Registrado como ${doctor.especialidad}, no como ${credentials.especialidad}.`);
-                    setIsLoading(false); // Apagamos spinner si hay error
+                    setIsLoading(false); 
                     return;
                 }
                 localStorage.setItem('doctorLogueado', JSON.stringify(doctor));
                 
-                // ALERTA DE ÉXITO MODERNA
                 Swal.fire({
                     title: '¡Acceso Autorizado!',
                     text: `Bienvenido(a), Dr(a). ${doctor.nombreCompleto.split(' ')[0]}`,
@@ -62,115 +59,211 @@ const Login = () => {
                 });
             }
         } catch (err) {
-            Swal.fire('Error de Credenciales', 'Correo o contraseña incorrectos.', 'error');
-            setError('Correo o contraseña incorrectos.');
-            setIsLoading(false); // <-- APAGAMOS EL SPINNER SI FALLA
+            setIsLoading(false); 
+            if (err.response) {
+                if (err.response.status === 404) setError('Usuario no registrado en el sistema.');
+                else if (err.response.status === 401) setError('Contraseña incorrecta.');
+                else setError('Credenciales inválidas.');
+            } else {
+                setError('Error de conexión con el servidor.');
+            }
+        }
+    };
+
+    const handleRecuperacionChange = (e) => {
+        setDatosRecuperacion({ ...datosRecuperacion, [e.target.name]: e.target.value });
+    };
+
+    // PASO 1 REAL: Pide a Java que genere el código
+    const solicitarCodigo = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        try {
+            await axios.post(`http://localhost:8080/api/auth/recuperar?correo=${datosRecuperacion.correo}`);
+            setIsLoading(false);
+            Swal.fire('Código Generado', 'Revisa la consola de tu servidor Java para ver el código.', 'info');
+            setVista('ingresar-codigo');
+        } catch (err) {
+            setIsLoading(false);
+            Swal.fire('Error', 'El correo ingresado no existe en nuestra base de datos.', 'error');
+        }
+    };
+
+    // PASO 2 REAL: Envía el código a Java para verificar
+    const verificarCodigo = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        try {
+            await axios.post('http://localhost:8080/api/auth/verificar-codigo', { 
+                correo: datosRecuperacion.correo, 
+                codigo: datosRecuperacion.codigo 
+            });
+            setIsLoading(false);
+            setVista('nueva-password');
+        } catch (err) {
+            setIsLoading(false);
+            Swal.fire('Código Inválido', 'El código ingresado es incorrecto o ha expirado.', 'error');
+        }
+    };
+
+    // PASO 3 REAL: Envía la nueva clave a Java para que la guarde en MySQL
+    const guardarNuevaPassword = async (e) => {
+        e.preventDefault();
+        if (datosRecuperacion.nueva !== datosRecuperacion.confirmar) {
+            return Swal.fire('Error', 'Las contraseñas no coinciden.', 'error');
+        }
+        setIsLoading(true);
+        try {
+            await axios.put('http://localhost:8080/api/auth/nueva-password', { 
+                correo: datosRecuperacion.correo, 
+                password: datosRecuperacion.nueva 
+            });
+            
+            setIsLoading(false);
+            Swal.fire('¡Éxito!', 'Tu contraseña ha sido restablecida en la base de datos. Ya puedes iniciar sesión.', 'success');
+            setVista('login');
+            setDatosRecuperacion({ correo: '', codigo: '', nueva: '', confirmar: '' });
+        } catch (err) {
+            setIsLoading(false);
+            Swal.fire('Error', 'No se pudo actualizar la contraseña en el servidor.', 'error');
         }
     };
 
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            
-            {/* EL VIDEO DE FONDO */}
-            <video 
-                autoPlay 
-                loop 
-                muted 
-                playsInline 
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: -2 }}
-            >
+            <video autoPlay loop muted playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: -2 }}>
                 <source src="/NovaSalud.mp4" type="video/mp4" />
             </video>
-
-            {/* CAPA OSCURA SUAVE PARA LEER EL TEXTO BLANCO */}
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(10, 20, 30, 0.45)', zIndex: -1 }}></div>
 
-            {/* CAJA DE LOGIN ULTRA TRANSPARENTE (Glassmorphism Puro) */}
             <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '400px', padding: '40px 30px', borderRadius: '20px', backgroundColor: 'rgba(255, 255, 255, 0.10)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.2)' }}>
                 
                 <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                    {/* SVG LOGO CORREGIDO - LETRA N CUADRADA */}
                     <svg width="70" height="70" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ margin: '0 auto' }}>
                         <circle cx="50" cy="50" r="45" stroke="#00A8CC" strokeWidth="6"/>
                         <path d="M30 72 V28 L70 72 V28" stroke="#2ecc71" strokeWidth="9" strokeLinecap="square" strokeLinejoin="miter"/>
                     </svg>
-                    
-                    {/* TEXTO AHORA ES BLANCO PARA RESALTAR */}
                     <h2 style={{ color: '#ffffff', marginTop: '15px', marginBottom: '5px', fontSize: '32px', fontWeight: '800' }}>
                         <span style={{ color: '#00A8CC' }}>Nova</span>Salud
                     </h2>
-                    <p style={{ color: '#cfd8dc', margin: 0, fontSize: '14px', fontWeight: 'bold', letterSpacing: '1px' }}>SISTEMA INTELIGENTE</p>
+                    <p style={{ color: '#cfd8dc', margin: 0, fontSize: '14px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                        {vista === 'login' ? 'SISTEMA INTELIGENTE' : 'RECUPERACIÓN DE ACCESO'}
+                    </p>
                 </div>
                 
-                {error && <div style={{ backgroundColor: 'rgba(229, 57, 53, 0.8)', color: '#ffffff', padding: '12px', marginBottom: '20px', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '13px', border: '1px solid rgba(255,255,255,0.3)' }}>{error}</div>}
+                {error && vista === 'login' && <div style={{ backgroundColor: 'rgba(229, 57, 53, 0.8)', color: '#ffffff', padding: '12px', marginBottom: '20px', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '13px', border: '1px solid rgba(255,255,255,0.3)' }}>{error}</div>}
 
-                <form onSubmit={iniciarSesion}>
-                    <label style={labelStyle}>Correo:</label>
-                    <input type="email" name="correo" onChange={handleChange} required style={inputStyle(correoError)} placeholder="doctor@novasalud.com" disabled={isLoading} />
-                    {correoError && <span style={{ color: '#ff8a80', fontSize: '12px', display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>{correoError}</span>}
-                    
-                    <label style={labelStyle}>Contraseña:</label>
-                    <div style={{ position: 'relative', width: '100%', marginBottom: '15px' }}>
-                        <input 
-                            type={mostrarPassword ? "text" : "password"} 
-                            name="password" 
-                            onChange={handleChange} 
-                            required 
-                            style={{ ...inputStyle(false), marginBottom: 0 }} 
-                            disabled={isLoading}
-                        />
-                        <button 
-                            type="button"
-                            onClick={() => setMostrarPassword(!mostrarPassword)}
-                            disabled={isLoading}
-                            style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff' }}
-                        >
-                            {mostrarPassword ? "🙈" : "👁️"}
+                {/* VISTA 1: LOGIN NORMAL */}
+                {vista === 'login' && (
+                    <form onSubmit={iniciarSesion} style={{ animation: 'fadeIn 0.5s' }}>
+                        <label style={labelStyle}>Correo:</label>
+                        <input type="email" name="correo" onChange={handleChange} required style={inputStyle(correoError)} placeholder="doctor@novasalud.com" disabled={isLoading} />
+                        
+                        <label style={labelStyle}>Contraseña:</label>
+                        <div style={{ position: 'relative', width: '100%', marginBottom: '15px' }}>
+                            <input type={mostrarPassword ? "text" : "password"} name="password" onChange={handleChange} required style={{ ...inputStyle(false), marginBottom: 0 }} disabled={isLoading} />
+                            <button type="button" onClick={() => setMostrarPassword(!mostrarPassword)} disabled={isLoading} style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff' }}>
+                                {mostrarPassword ? "🙈" : "👁️"}
+                            </button>
+                        </div>
+
+                        <label style={labelStyle}>Especialidad:</label>
+                        <select name="especialidad" onChange={handleChange} required style={inputStyle(false)} disabled={isLoading}>
+                            <option value="" style={{color: '#000'}}>Seleccione su área...</option>
+                            <option value="Medicina General" style={{color: '#000'}}>Medicina General</option>
+                            <option value="Cardiología" style={{color: '#000'}}>Cardiología</option>
+                            <option value="Pediatría" style={{color: '#000'}}>Pediatría</option>
+                            <option value="Neurología" style={{color: '#000'}}>Neurología</option>
+                            <option value="Traumatología" style={{color: '#000'}}>Traumatología</option>
+                        </select>
+
+                        <button type="submit" disabled={!!correoError || isLoading} style={btnSubmitStyle(!!correoError || isLoading)}>
+                            {isLoading ? '⏳ VERIFICANDO...' : 'INGRESAR AL SISTEMA'}
                         </button>
-                    </div>
 
-                    <label style={labelStyle}>Especialidad:</label>
-                    <select name="especialidad" onChange={handleChange} required style={inputStyle(false)} disabled={isLoading}>
-                        <option value="" style={{color: '#000'}}>Seleccione su área...</option>
-                        <option value="Medicina General" style={{color: '#000'}}>Medicina General</option>
-                        <option value="Cardiología" style={{color: '#000'}}>Cardiología</option>
-                        <option value="Pediatría" style={{color: '#000'}}>Pediatría</option>
-                        <option value="Neurología" style={{color: '#000'}}>Neurología</option>
-                        <option value="Traumatología" style={{color: '#000'}}>Traumatología</option>
-                    </select>
+                        <div style={{ textAlign: 'center', marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <button type="button" onClick={() => { setVista('pedir-correo'); setError(''); }} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}>
+                                ¿Olvidaste tu contraseña?
+                            </button>
+                            <Link to="/registro" style={{ color: '#00A8CC', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px' }}>
+                                ¿No tienes cuenta? Regístrate aquí
+                            </Link>
+                        </div>
+                    </form>
+                )}
 
-                    <button type="submit" disabled={!!correoError || isLoading} style={btnSubmitStyle(!!correoError || isLoading)}>
-                        {isLoading ? '⏳ VERIFICANDO...' : 'INGRESAR AL SISTEMA'}
-                    </button>
-                </form>
+                {/* VISTA 2: PEDIR CORREO */}
+                {vista === 'pedir-correo' && (
+                    <form onSubmit={solicitarCodigo} style={{ animation: 'fadeIn 0.5s' }}>
+                        <p style={{ color: '#e2e8f0', fontSize: '13px', marginBottom: '20px', textAlign: 'center' }}>
+                            Ingresa tu correo institucional. Te enviaremos un código de 6 dígitos para verificar tu identidad.
+                        </p>
+                        <label style={labelStyle}>Correo Institucional:</label>
+                        <input type="email" name="correo" value={datosRecuperacion.correo} onChange={handleRecuperacionChange} required style={inputStyle(false)} placeholder="tu-correo@novasalud.com" disabled={isLoading} />
+                        
+                        <button type="submit" disabled={isLoading} style={btnSubmitStyle(isLoading)}>
+                            {isLoading ? '⏳ ENVIANDO...' : 'ENVIAR CÓDIGO SEGURO'}
+                        </button>
+                        <button type="button" onClick={() => setVista('login')} style={btnCancelStyle}>Cancelar y Volver</button>
+                    </form>
+                )}
 
-                <div style={{ textAlign: 'center', marginTop: '25px' }}>
-                    <Link to="/registro" style={{ color: '#00A8CC', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>¿No tienes cuenta? Regístrate aquí</Link>
-                </div>
+                {/* VISTA 3: INGRESAR CÓDIGO */}
+                {vista === 'ingresar-codigo' && (
+                    <form onSubmit={verificarCodigo} style={{ animation: 'fadeIn 0.5s' }}>
+                        <div style={{ backgroundColor: 'rgba(56, 161, 105, 0.2)', border: '1px solid #38a169', padding: '10px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' }}>
+                            <span style={{ color: '#9ae6b4', fontSize: '12px', fontWeight: 'bold' }}>Código enviado a: {datosRecuperacion.correo}</span>
+                        </div>
+                        
+                        <label style={labelStyle}>Código de Verificación (6 dígitos):</label>
+                        <input type="text" name="codigo" value={datosRecuperacion.codigo} onChange={handleRecuperacionChange} required maxLength="6" style={{...inputStyle(false), textAlign: 'center', fontSize: '20px', letterSpacing: '5px', fontWeight: 'bold'}} placeholder="------" disabled={isLoading} />
+                        
+                        <button type="submit" disabled={datosRecuperacion.codigo.length !== 6 || isLoading} style={btnSubmitStyle(datosRecuperacion.codigo.length !== 6 || isLoading)}>
+                            {isLoading ? '⏳ VERIFICANDO...' : 'VALIDAR CÓDIGO'}
+                        </button>
+                        <button type="button" onClick={() => setVista('login')} style={btnCancelStyle}>Cancelar y Volver</button>
+                    </form>
+                )}
+
+                {/* VISTA 4: NUEVA CONTRASEÑA */}
+                {vista === 'nueva-password' && (
+                    <form onSubmit={guardarNuevaPassword} style={{ animation: 'fadeIn 0.5s' }}>
+                        <label style={labelStyle}>Nueva Contraseña:</label>
+                        <input type="password" name="nueva" value={datosRecuperacion.nueva} onChange={handleRecuperacionChange} required minLength="6" style={inputStyle(false)} placeholder="Mínimo 6 caracteres" disabled={isLoading} />
+                        
+                        <label style={labelStyle}>Confirmar Contraseña:</label>
+                        <input type="password" name="confirmar" value={datosRecuperacion.confirmar} onChange={handleRecuperacionChange} required style={inputStyle(datosRecuperacion.nueva !== datosRecuperacion.confirmar && datosRecuperacion.confirmar.length > 0)} placeholder="Repite la contraseña" disabled={isLoading} />
+                        
+                        <button type="submit" disabled={isLoading} style={btnSubmitStyle(isLoading)}>
+                            {isLoading ? '⏳ GUARDANDO...' : 'GUARDAR NUEVO ACCESO'}
+                        </button>
+                    </form>
+                )}
+
             </div>
             
-            {/* INYECCIÓN CSS PARA PLACEHOLDERS */}
             <style>{`
                 input::placeholder { color: rgba(255,255,255,0.6); }
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
             `}</style>
         </div>
     );
 };
 
-// Estilos actualizados para textos blancos y cajas transparentes
 const labelStyle = { fontWeight: 'bold', color: '#ffffff', fontSize: '13px', display: 'block', marginBottom: '5px', textShadow: '0 1px 2px rgba(0,0,0,0.5)' };
 const inputStyle = (error) => ({
     width: '100%', padding: '12px 15px', marginBottom: '15px', boxSizing: 'border-box', 
-    border: error ? '2px solid #e53935' : '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '10px', 
-    outline: 'none', fontSize: '15px', transition: 'all 0.3s',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)', color: '#ffffff' 
+    border: error ? '2px solid #ff8a80' : '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '10px', 
+    outline: 'none', fontSize: '15px', transition: 'all 0.3s', backgroundColor: 'rgba(255, 255, 255, 0.15)', color: '#ffffff' 
 });
 const btnSubmitStyle = (disabled) => ({
-    width: '100%', padding: '15px', marginTop: '10px', 
-    backgroundColor: disabled ? 'rgba(255,255,255,0.3)' : '#00A8CC', color: '#ffffff', 
-    border: 'none', borderRadius: '10px', cursor: disabled ? 'not-allowed' : 'pointer', 
-    fontWeight: '900', fontSize: '15px', letterSpacing: '1px', transition: 'all 0.3s',
-    boxShadow: disabled ? 'none' : '0 4px 15px rgba(0, 168, 204, 0.4)'
+    width: '100%', padding: '15px', marginTop: '10px', backgroundColor: disabled ? 'rgba(255,255,255,0.3)' : '#00A8CC', 
+    color: '#ffffff', border: 'none', borderRadius: '10px', cursor: disabled ? 'not-allowed' : 'pointer', 
+    fontWeight: '900', fontSize: '15px', letterSpacing: '1px', transition: 'all 0.3s', boxShadow: disabled ? 'none' : '0 4px 15px rgba(0, 168, 204, 0.4)'
 });
+const btnCancelStyle = {
+    width: '100%', padding: '10px', marginTop: '15px', background: 'transparent', color: '#cbd5e1', 
+    border: '1px solid rgba(255,255,255,0.3)', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold'
+};
 
 export default Login;

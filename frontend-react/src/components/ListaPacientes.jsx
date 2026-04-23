@@ -4,7 +4,7 @@ import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Swal from 'sweetalert2'; // <-- IMPORTACIÓN DE SWEETALERT
+import Swal from 'sweetalert2'; 
 
 const ListaPacientes = () => {
     const [pacientes, setPacientes] = useState([]);
@@ -12,7 +12,7 @@ const ListaPacientes = () => {
     const [pacienteAEditar, setPacienteAEditar] = useState(null);
     const [busqueda, setBusqueda] = useState('');
     
-    const [isSavingEdit, setIsSavingEdit] = useState(false); // <-- NUEVO ESTADO DE CARGA PARA EDICIÓN
+    const [isSavingEdit, setIsSavingEdit] = useState(false); 
 
     useEffect(() => { cargarPacientes(); }, []);
 
@@ -27,7 +27,6 @@ const ListaPacientes = () => {
     };
 
     const eliminarPaciente = (id, nombre) => {
-        // --- SWEETALERT PARA CONFIRMAR ELIMINACIÓN ---
         Swal.fire({
             title: '¿Autorizar Eliminación?',
             text: `Se borrará permanentemente el expediente de: ${nombre}`,
@@ -57,7 +56,7 @@ const ListaPacientes = () => {
 
     const guardarEdicion = (e) => {
         e.preventDefault();
-        setIsSavingEdit(true); // <-- ACTIVAR SPINNER
+        setIsSavingEdit(true); 
 
         PacienteService.actualizarPaciente(pacienteAEditar.id, pacienteAEditar)
             .then(() => {
@@ -69,7 +68,7 @@ const ListaPacientes = () => {
             .catch(() => {
                 Swal.fire('Error', 'No se pudieron guardar los cambios en el servidor.', 'error');
             })
-            .finally(() => setIsSavingEdit(false)); // <-- DESACTIVAR SPINNER
+            .finally(() => setIsSavingEdit(false)); 
     };
 
     const pacientesFiltrados = pacientes.filter(p => 
@@ -209,7 +208,6 @@ const ListaPacientes = () => {
                     .input-buscar-nova:focus { border-color: #00A8CC !important; box-shadow: 0 0 0 3px rgba(0, 168, 204, 0.15) !important; }
                 `}</style>
 
-                {/* HEADER DASHBOARD */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '20px 35px', borderRadius: '15px', marginBottom: '25px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderLeft: '8px solid #1A365D' }}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div style={{ background: '#1A365D', padding: '10px', borderRadius: '12px', marginRight: '15px' }}>
@@ -228,7 +226,6 @@ const ListaPacientes = () => {
                     </button>
                 </div>
 
-                {/* DASHBOARD ESTADÍSTICO */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '20px', marginBottom: '30px' }}>
                     <div className="card-resumen-nova" style={{ borderTopColor: '#00A8CC' }}>
                         <span style={{ fontSize: '12px', fontWeight: '800', color: '#718096' }}>POBLACIÓN ACTIVA</span>
@@ -261,12 +258,10 @@ const ListaPacientes = () => {
                     </div>
                 </div>
 
-                {/* BUSCADOR */}
                 <div style={{ textAlign: 'left', marginBottom: '25px' }}>
                     <input className="input-buscar-nova" type="text" placeholder="🔍 Buscar expediente por Nombre, Apellido o DNI..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ width: '45%', padding: '16px 25px', borderRadius: '35px', border: '2px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
                 </div>
 
-                {/* TABLA PRINCIPAL */}
                 <div style={{ borderRadius: '15px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)', background: 'white' }}>
                     <table className="tabla-clinica-nova">
                         <thead>
@@ -300,7 +295,6 @@ const ListaPacientes = () => {
                     </table>
                 </div>
 
-                {/* DASHBOARD IA INDIVIDUAL */}
                 {pacienteSeleccionado && (
                     <div className="animacion-entrada" style={{ backgroundColor: '#1A365D', padding: '35px', borderRadius: '20px', marginTop: '35px', color: 'white', textAlign: 'left', boxShadow: '0 15px 35px rgba(26, 54, 93, 0.3)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '15px', marginBottom: '25px' }}>
@@ -334,7 +328,6 @@ const ListaPacientes = () => {
                     </div>
                 )}
 
-                {/* VENTANA FLOTANTE DE EDICIÓN CON SPINNER */}
                 {pacienteAEditar && (
                     <div className="animacion-entrada" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(26, 54, 93, 0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <div style={{ backgroundColor: '#FFFFFF', padding: '40px', borderRadius: '20px', width: '100%', maxWidth: '550px', textAlign: 'left', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -357,8 +350,29 @@ const ListaPacientes = () => {
                                     </div>
                                 </div>
 
+                                {/* ======================================================= */}
+                                {/* AQUÍ ESTÁ EL INPUT CON SUGERENCIAS PARA EL MODAL DE EDICIÓN */}
+                                {/* ======================================================= */}
                                 <label style={labelModalStyle}>Cuadro de Alergias (Crítico para Diagnóstico IA)</label>
-                                <input type="text" name="alergiasConocidas" value={pacienteAEditar.alergiasConocidas} onChange={manejarCambioEdicion} style={inputModalStyle} disabled={isSavingEdit}/>
+                                <input 
+                                    type="text" 
+                                    list="sugerencias-alergias-editar"
+                                    name="alergiasConocidas" 
+                                    value={pacienteAEditar.alergiasConocidas} 
+                                    onChange={manejarCambioEdicion} 
+                                    style={inputModalStyle} 
+                                    disabled={isSavingEdit}
+                                />
+                                <datalist id="sugerencias-alergias-editar">
+                                    <option value="Ninguna" />
+                                    <option value="Desconocidas" />
+                                    <option value="Penicilina" />
+                                    <option value="AINEs (Ibuprofeno, Aspirina)" />
+                                    <option value="Anestesia local o general" />
+                                    <option value="Látex" />
+                                    <option value="Mariscos / Pescado" />
+                                    <option value="Frutos secos (Maní, Nueces)" />
+                                </datalist>
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '35px' }}>
                                     <button type="button" onClick={() => setPacienteAEditar(null)} disabled={isSavingEdit} style={{ backgroundColor: '#CBD5E0', color: '#4A5568', border: 'none', padding: '14px 25px', borderRadius: '10px', cursor: isSavingEdit ? 'wait' : 'pointer', fontWeight: '800' }}>Cancelar</button>
@@ -378,4 +392,4 @@ const ListaPacientes = () => {
 const labelModalStyle = { fontWeight: '800', color: '#4A5568', fontSize: '11px', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' };
 const inputModalStyle = { width: '100%', padding: '14px', border: '1.5px solid #E2E8F0', borderRadius: '10px', outline: 'none', background: '#F8FAFC', fontSize: '15px' };
 
-export default ListaPacientes;
+export default ListaPacientes;  
