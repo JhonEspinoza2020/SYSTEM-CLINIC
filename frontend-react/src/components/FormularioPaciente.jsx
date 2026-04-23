@@ -178,7 +178,7 @@ const FormularioPaciente = () => {
                     {/* AQUÍ ESTÁ EL NUEVO INPUT CON SUGERENCIAS (DATALIST) */}
                     {/* ======================================================= */}
                     <div style={{ marginBottom: '30px' }}>
-                        <label style={labelStyle}>Alergias Conocidas (Importante para la IA)</label>
+                        <label style={labelStyle}>Alergias Conocidas</label>
                         <input 
                             className="input-clinico" 
                             type="text" 
