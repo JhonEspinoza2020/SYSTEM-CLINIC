@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import Swal from 'sweetalert2'; // <-- IMPORTAMOS SWEETALERT
 
 const RegistroDoctor = () => {
-    // 1. Estado inicial con el nuevo campo dniDoctor
     const [doctor, setDoctor] = useState({ 
         nombreCompleto: '', 
         dniDoctor: '', 
@@ -15,14 +15,13 @@ const RegistroDoctor = () => {
     const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
     const [correoError, setCorreoError] = useState(''); 
     const [mostrarPassword, setMostrarPassword] = useState(false); 
-    
+    const [isLoading, setIsLoading] = useState(false); // <-- ESTADO DE CARGA
     const navigate = useNavigate();
 
-    // Función para validar el formato del correo
     const validarCorreo = (correo) => {
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (correo && !regex.test(correo)) {
-            setCorreoError('Formato de correo inválido (ej: nombre@clinica.com)');
+            setCorreoError('Formato de correo inválido');
         } else {
             setCorreoError('');
         }
@@ -30,142 +29,209 @@ const RegistroDoctor = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-
-        // 2. Bloqueo de caracteres raros (Sanitización)
         const caracteresProhibidos = /[<>"';]/g;
         if (caracteresProhibidos.test(value)) {
-            setMensaje({ texto: 'No se permiten caracteres especiales como < > " ;', tipo: 'error' });
+            setMensaje({ texto: 'Caracteres especiales no permitidos', tipo: 'error' });
             return; 
         }
 
-        // 3. Validación de Nombre (Solo letras)
         if (name === 'nombreCompleto') {
             const soloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]*$/;
-            if (!soloLetras.test(value)) {
-                setMensaje({ texto: 'El nombre solo puede contener letras.', tipo: 'error' });
-                return;
-            }
+            if (!soloLetras.test(value)) return;
         }
 
-        // 4. Validación de DNI (Solo números)
-        if (name === 'dniDoctor') {
-            if (!/^\d*$/.test(value)) return;
-        }
+        if (name === 'dniDoctor' && !/^\d*$/.test(value)) return;
 
         setDoctor({ ...doctor, [name]: value });
-
-        if (name === 'correo') {
-            validarCorreo(value);
-        } else {
-            setMensaje({ texto: '', tipo: '' });
-        }
+        if (name === 'correo') validarCorreo(value);
     };
 
     const registrarse = async (e) => {
         e.preventDefault();
         setMensaje({ texto: '', tipo: '' });
         
-        // Validaciones finales antes de enviar a Java
-        if (correoError) return;
-        if (doctor.dniDoctor.length !== 8) {
-            setMensaje({ texto: 'El DNI debe tener 8 dígitos.', tipo: 'error' });
+        if (correoError || doctor.dniDoctor.length !== 8) return;
+
+        // Validaciones estrictas de NovaSalud
+        const nombre = doctor.nombreCompleto.trim();
+        if (!/[aeiouáéíóúAEIOUÁÉÍÓÚ]/.test(nombre)) {
+            Swal.fire('Nombre Inválido', 'El nombre debe contener vocales', 'warning');
+            setMensaje({ texto: 'El nombre debe contener vocales', tipo: 'error' });
             return;
         }
-        
+
+        setIsLoading(true); // <-- ACTIVAR SPINNER
+
         try {
-            const respuesta = await axios.post('http://localhost:8080/api/auth/registro', doctor);
+            const payload = { ...doctor, nombreCompleto: nombre };
+            const respuesta = await axios.post('http://localhost:8080/api/auth/registro', payload);
             
             if (respuesta.status === 201) {
-                setMensaje({ texto: '¡Doctor registrado con éxito! Redirigiendo...', tipo: 'exito' });
-                setTimeout(() => navigate('/'), 2000);
+                setMensaje({ texto: '¡Registro NovaSalud Exitoso! Redirigiendo...', tipo: 'exito' });
+                // ALERTA MODERNA DE ÉXITO
+                Swal.fire({
+                    title: '¡Registro Exitoso!',
+                    text: 'Bienvenido a la red NovaSalud. Redirigiendo...',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    navigate('/');
+                });
             }
         } catch (err) {
-            console.error("Error al registrar:", err);
-            setMensaje({ texto: 'Ese correo ya está registrado o hubo un error.', tipo: 'error' });
+            Swal.fire('Error en Registro', 'El correo o DNI ya se encuentran registrados', 'error');
+            setMensaje({ texto: 'El correo o DNI ya se encuentran registrados', tipo: 'error' });
+            setIsLoading(false); // <-- DESACTIVAR SPINNER SI FALLA
         }
     };
 
     return (
-        <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#fdfdfd', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ textAlign: 'center', color: '#2c3e50' }}>Registrarse como Doctor</h2>
-            
-            {mensaje.texto && (
-                <div style={{ backgroundColor: mensaje.tipo === 'error' ? '#ffebee' : '#e8f5e9', color: mensaje.tipo === 'error' ? '#c62828' : '#2e7d32', padding: '10px', marginBottom: '15px', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold' }}>
-                    {mensaje.texto}
+        <div className="container-registro">
+            {/* BLOQUE DE ESTILOS CSS CON ANIMACIÓN DE ENTRADA */}
+            <style>{`
+                .container-registro {
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%);
+                    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                }
+
+                .card-registro-nova {
+                    background: #ffffff;
+                    padding: 40px;
+                    border-radius: 20px;
+                    width: 100%;
+                    max-width: 480px;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    animation: novaReveal 0.7s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+                    opacity: 0;
+                }
+
+                @keyframes novaReveal {
+                    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+
+                .nova-input {
+                    width: 100%;
+                    padding: 12px 16px;
+                    margin-top: 6px;
+                    margin-bottom: 16px;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 10px;
+                    font-size: 15px;
+                    transition: all 0.3s ease;
+                    outline: none;
+                    box-sizing: border-box;
+                }
+
+                .nova-input:focus {
+                    border-color: #00a8cc;
+                    box-shadow: 0 0 0 4px rgba(0, 168, 204, 0.15);
+                }
+
+                .btn-nova-submit {
+                    width: 100%;
+                    padding: 14px;
+                    background: #1a365d;
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-weight: 700;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    margin-top: 10px;
+                }
+
+                .btn-nova-submit:hover:not(:disabled) {
+                    background: #2c5282;
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+                }
+
+                .btn-nova-submit:disabled {
+                    background: #cbd5e0;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+            `}</style>
+
+            <div className="card-registro-nova">
+                <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                    {/* LOGO N TÉCNICA - GARANTIZADA N Y NO M */}
+                    <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ margin: '0 auto' }}>
+                        <rect width="100" height="100" rx="22" fill="#1A365D"/>
+                        <path d="M28 72 V28 L72 72 V28" stroke="#00A8CC" strokeWidth="10" strokeLinecap="square" strokeLinejoin="miter"/>
+                    </svg>
+                    
+                    <h2 style={{ color: '#1a365d', margin: '15px 0 5px 0', fontSize: '28px', fontWeight: '800' }}>NovaSalud</h2>
+                    <p style={{ color: '#718096', fontSize: '13px', fontWeight: '600', letterSpacing: '1px' }}>REGISTRO DE PERSONAL MÉDICO</p>
                 </div>
-            )}
 
-            <form onSubmit={registrarse}>
-                <label style={{ fontWeight: 'bold' }}>Nombre Completo:</label>
-                <input type="text" name="nombreCompleto" value={doctor.nombreCompleto} onChange={handleChange} required style={{width: '100%', marginBottom: '15px', padding: '10px', boxSizing: 'border-box'}} placeholder="Ej: Carlos Mendoza" />
+                {mensaje.texto && (
+                    <div style={{ 
+                        backgroundColor: mensaje.tipo === 'error' ? '#fff5f5' : '#f0fff4', 
+                        color: mensaje.tipo === 'error' ? '#c53030' : '#2f855a', 
+                        padding: '12px', marginBottom: '20px', borderRadius: '10px', 
+                        textAlign: 'center', fontWeight: 'bold', fontSize: '14px',
+                        border: `1px solid ${mensaje.tipo === 'error' ? '#feb2b2' : '#9ae6b4'}`
+                    }}>
+                        {mensaje.texto}
+                    </div>
+                )}
 
-                <label style={{ fontWeight: 'bold' }}>DNI del Doctor:</label>
-                <input 
-                    type="text" 
-                    name="dniDoctor" 
-                    value={doctor.dniDoctor} 
-                    onChange={handleChange} 
-                    maxLength="8" 
-                    required 
-                    style={{width: '100%', marginBottom: '5px', padding: '10px', boxSizing: 'border-box', border: doctor.dniDoctor.length > 0 && doctor.dniDoctor.length !== 8 ? '2px solid red' : '1px solid #ccc'}} 
-                    placeholder="8 dígitos"
-                />
-                {doctor.dniDoctor.length > 0 && doctor.dniDoctor.length !== 8 && <span style={{color:'red', fontSize:'12px', display:'block', marginBottom:'10px'}}>Debe tener exactamente 8 dígitos</span>}
+                <form onSubmit={registrarse}>
+                    <label style={labelStyle}>NOMBRE Y APELLIDO</label>
+                    <input type="text" name="nombreCompleto" value={doctor.nombreCompleto} onChange={handleChange} required className="nova-input" placeholder="Ej: Dr. Julián Castro" disabled={isLoading} />
 
-                <label style={{ fontWeight: 'bold', marginTop: '10px', display: 'block' }}>Correo Institucional:</label>
-                <input 
-                    type="email" 
-                    name="correo" 
-                    value={doctor.correo}
-                    onChange={handleChange} 
-                    required 
-                    style={{width: '100%', marginBottom: '5px', padding: '10px', boxSizing: 'border-box', border: correoError ? '2px solid red' : '1px solid #ccc'}} 
-                />
-                {correoError && <span style={{ color: 'red', fontSize: '12px', display: 'block', marginBottom: '10px' }}>{correoError}</span>}
-                
-                <label style={{ fontWeight: 'bold', display: 'block', marginTop: '10px' }}>Contraseña:</label>
-                <div style={{ position: 'relative', width: '100%', marginBottom: '15px' }}>
-                    <input 
-                        type={mostrarPassword ? "text" : "password"} 
-                        name="password" 
-                        value={doctor.password}
-                        onChange={handleChange} 
-                        required 
-                        style={{width: '100%', padding: '10px', boxSizing: 'border-box'}} 
-                    />
-                    <button 
-                        type="button"
-                        onClick={() => setMostrarPassword(!mostrarPassword)}
-                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}
-                    >
-                        {mostrarPassword ? "🙈" : "👁️"}
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={labelStyle}>DNI (8 DÍGITOS)</label>
+                            <input type="text" name="dniDoctor" value={doctor.dniDoctor} onChange={handleChange} maxLength="8" required className="nova-input" style={{ borderColor: doctor.dniDoctor.length > 0 && doctor.dniDoctor.length !== 8 ? '#e53e3e' : '#e2e8f0' }} disabled={isLoading} />
+                        </div>
+                        <div style={{ flex: 1.5 }}>
+                            <label style={labelStyle}>CORREO</label>
+                            <input type="email" name="correo" value={doctor.correo} onChange={handleChange} required className="nova-input" style={{ borderColor: correoError ? '#e53e3e' : '#e2e8f0' }} disabled={isLoading} />
+                        </div>
+                    </div>
+                    
+                    <label style={labelStyle}>CONTRASEÑA DE ACCESO</label>
+                    <div style={{ position: 'relative' }}>
+                        <input type={mostrarPassword ? "text" : "password"} name="password" value={doctor.password} onChange={handleChange} required className="nova-input" disabled={isLoading} />
+                        <button type="button" onClick={() => setMostrarPassword(!mostrarPassword)} disabled={isLoading} style={{ position: 'absolute', right: '12px', top: '16px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>
+                            {mostrarPassword ? "🙈" : "👁️"}
+                        </button>
+                    </div>
+
+                    <label style={labelStyle}>ESPECIALIDAD MÉDICA</label>
+                    <select name="especialidad" value={doctor.especialidad} onChange={handleChange} required className="nova-input" style={{ backgroundColor: '#f8fafc' }} disabled={isLoading}>
+                        <option value="">Seleccione especialidad...</option>
+                        <option value="Medicina General">Medicina General</option>
+                        <option value="Cardiología">Cardiología</option>
+                        <option value="Pediatría">Pediatría</option>
+                        <option value="Neurología">Neurología</option>
+                        <option value="Traumatología">Traumatología</option>
+                    </select>
+
+                    <button type="submit" disabled={!!correoError || doctor.dniDoctor.length !== 8 || isLoading} className="btn-nova-submit">
+                        {isLoading ? '⏳ CREANDO CREDENCIALES...' : 'CONFIRMAR REGISTRO'}
                     </button>
+                </form>
+
+                <div style={{ textAlign: 'center', marginTop: '25px' }}>
+                    <Link to="/" style={{ color: '#2c5282', textDecoration: 'none', fontWeight: '700', fontSize: '14px' }}>
+                        ← Regresar al Inicio de Sesión
+                    </Link>
                 </div>
-
-                <label style={{ fontWeight: 'bold' }}>Especialidad:</label>
-                <select name="especialidad" value={doctor.especialidad} onChange={handleChange} required style={{width: '100%', marginBottom: '25px', padding: '10px', boxSizing: 'border-box'}}>
-                    <option value="">Seleccione...</option>
-                    <option value="Medicina General">Medicina General</option>
-                    <option value="Cardiología">Cardiología</option>
-                    <option value="Pediatría">Pediatría</option>
-                    <option value="Neurología">Neurología</option>
-                    <option value="Traumatología">Traumatología</option>
-                </select>
-
-                <button 
-                    type="submit" 
-                    disabled={!!correoError || doctor.dniDoctor.length !== 8}
-                    style={{width: '100%', padding: '12px', backgroundColor: (correoError || doctor.dniDoctor.length !== 8) ? '#95a5a6' : '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: (correoError || doctor.dniDoctor.length !== 8) ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '16px'}}
-                >
-                    Crear Cuenta
-                </button>
-            </form>
-
-            <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                <Link to="/" style={{ color: '#0056b3', textDecoration: 'none' }}>¿Ya tienes cuenta? Inicia sesión aquí</Link>
             </div>
         </div>
     );
 };
+
+const labelStyle = { fontWeight: '800', color: '#4a5568', fontSize: '11px', display: 'block', letterSpacing: '0.5px', marginLeft: '4px' };
 
 export default RegistroDoctor;

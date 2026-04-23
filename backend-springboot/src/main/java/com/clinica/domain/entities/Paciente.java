@@ -23,4 +23,8 @@ public class Paciente {
     private String riesgoPredicho;
     private String recomendacionIa;
     private String idDoctor;
+    private String sexo;
+    private Integer numeroCama;
+    private String historiaClinica;
+    private String fechaRegistro;
 }

@@ -16,7 +16,7 @@ function App() {
         
         {/* Aquí se define qué pantalla se muestra según la URL */}
         <Routes>
-          {/* Ruta por defecto: La pantalla de Login */}
+          {/* Ruta por defecto: La pantal la de Login */}
           <Route path="/" element={<Login />} />
 
           {/* NUEVA RUTA: La pantalla de Registro de Doctores */}

@@ -29,6 +29,10 @@ public class PacienteRepositoryAdapter implements PacienteRepositoryPort {
                 .dni(paciente.getDni())
                 .edad(paciente.getEdad())
                 .tipoSangre(paciente.getTipoSangre())
+                .sexo(paciente.getSexo())
+                .numeroCama(paciente.getNumeroCama())
+                .historiaClinica(paciente.getHistoriaClinica())
+                .fechaRegistro(paciente.getFechaRegistro())
                 .alergiasConocidas(paciente.getAlergiasConocidas())
                 .riesgoPredicho(paciente.getRiesgoPredicho())
                 .recomendacionIa(paciente.getRecomendacionIa())
@@ -69,6 +73,10 @@ public class PacienteRepositoryAdapter implements PacienteRepositoryPort {
                 .riesgoPredicho(entity.getRiesgoPredicho())
                 .recomendacionIa(entity.getRecomendacionIa())
                 .idDoctor(entity.getIdDoctor()) 
+                .sexo(entity.getSexo())
+                .numeroCama(entity.getNumeroCama())
+                .historiaClinica(entity.getHistoriaClinica())
+                .fechaRegistro(entity.getFechaRegistro())
                 .build();
     }
 }

@@ -10,6 +10,9 @@ public interface GestionarPacienteUseCase {
     List<Paciente> listarTodosLosPacientes();
     List<Paciente> listarPacientesPorDoctor(String idDoctor);
     
-    // --- NUEVO MÉTODO ---
+   // ... tus otros métodos ...
     void eliminarPaciente(String id);
+    
+    // --- NUEVO MÉTODO PARA EDITAR ---
+    Paciente actualizarPaciente(String id, Paciente pacienteActualizado);
 }

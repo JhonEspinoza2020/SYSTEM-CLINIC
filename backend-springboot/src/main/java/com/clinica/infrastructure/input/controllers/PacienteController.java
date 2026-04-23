@@ -39,4 +39,13 @@ public class PacienteController {
     public ResponseEntity<List<Paciente>> listarTodos() {
         return ResponseEntity.ok(gestionarPacienteUseCase.listarTodosLosPacientes());
     }
+
+    // ... tus otros endpoints (@GetMapping, @DeleteMapping) ...
+
+    // --- NUEVA RUTA PARA EDITAR (REACT LLAMARÁ AQUÍ) ---
+    @PutMapping("/{id}")
+    public ResponseEntity<Paciente> actualizarPaciente(@PathVariable String id, @RequestBody Paciente pacienteActualizado) {
+        Paciente pacienteGuardado = gestionarPacienteUseCase.actualizarPaciente(id, pacienteActualizado);
+        return ResponseEntity.ok(pacienteGuardado);
+    }
 }

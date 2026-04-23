@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import Swal from 'sweetalert2'; // <-- IMPORTAMOS SWEETALERT
 
 const Login = () => {
     const [credentials, setCredentials] = useState({ correo: '', password: '', especialidad: '' });
     const [error, setError] = useState('');
-    const [correoError, setCorreoError] = useState(''); // Estado para el error del correo en tiempo real
-    const [mostrarPassword, setMostrarPassword] = useState(false); // Estado para el "ojito"
+    const [correoError, setCorreoError] = useState(''); 
+    const [mostrarPassword, setMostrarPassword] = useState(false); 
+    const [isLoading, setIsLoading] = useState(false); // <-- ESTADO DE CARGA (SPINNER)
     const navigate = useNavigate();
 
-    // Validación de correo en tiempo real
     const validarCorreo = (correo) => {
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (correo && !regex.test(correo)) {
@@ -21,16 +22,13 @@ const Login = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-
-        // Si es password, bloqueamos caracteres raros en tiempo real
         if (name === 'password') {
             const forbiddenChars = /[<>"';]/g;
             if (forbiddenChars.test(value)) {
                 setError("La contraseña contiene caracteres no permitidos.");
-                return; // No actualiza el estado si hay caracteres prohibidos
+                return; 
             }
         }
-
         setCredentials({ ...credentials, [name]: value });
         if (name === 'correo') validarCorreo(value);
     };
@@ -38,77 +36,141 @@ const Login = () => {
     const iniciarSesion = async (e) => {
         e.preventDefault();
         setError('');
-        
+        setIsLoading(true); // <-- ACTIVAMOS EL SPINNER
+
         try {
             const respuesta = await axios.post('http://localhost:8080/api/auth/login', credentials);
-            
             if (respuesta.status === 200) {
                 const doctor = respuesta.data;
-
-                // --- VALIDACIÓN DE ROL/ESPECIALIDAD ---
-                // Verificamos que la especialidad elegida en el SELECT coincida con la de la BD
                 if (doctor.especialidad !== credentials.especialidad) {
-                    setError(`Acceso denegado: Usted está registrado como ${doctor.especialidad}, no como ${credentials.especialidad}.`);
+                    Swal.fire('Acceso Denegado', `Registrado como ${doctor.especialidad}, no como ${credentials.especialidad}.`, 'error');
+                    setError(`Acceso denegado: Registrado como ${doctor.especialidad}, no como ${credentials.especialidad}.`);
+                    setIsLoading(false); // Apagamos spinner si hay error
                     return;
                 }
-
                 localStorage.setItem('doctorLogueado', JSON.stringify(doctor));
-                navigate('/dashboard');
+                
+                // ALERTA DE ÉXITO MODERNA
+                Swal.fire({
+                    title: '¡Acceso Autorizado!',
+                    text: `Bienvenido(a), Dr(a). ${doctor.nombreCompleto.split(' ')[0]}`,
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    navigate('/dashboard');
+                });
             }
         } catch (err) {
+            Swal.fire('Error de Credenciales', 'Correo o contraseña incorrectos.', 'error');
             setError('Correo o contraseña incorrectos.');
+            setIsLoading(false); // <-- APAGAMOS EL SPINNER SI FALLA
         }
     };
 
     return (
-        <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#fdfdfd', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ textAlign: 'center', color: '#2c3e50' }}>Acceso para Doctores</h2>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
             
-            {error && <div style={{ backgroundColor: '#ffebee', color: '#c62828', padding: '10px', marginBottom: '15px', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
+            {/* EL VIDEO DE FONDO */}
+            <video 
+                autoPlay 
+                loop 
+                muted 
+                playsInline 
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: -2 }}
+            >
+                <source src="/NovaSalud.mp4" type="video/mp4" />
+            </video>
 
-            <form onSubmit={iniciarSesion}>
-                <label style={{ fontWeight: 'bold' }}>Correo Institucional:</label>
-                <input type="email" name="correo" onChange={handleChange} required style={{width: '100%', marginBottom: '5px', padding: '10px', boxSizing: 'border-box', border: correoError ? '2px solid red' : '1px solid #ccc'}} />
-                {correoError && <span style={{ color: 'red', fontSize: '12px', display: 'block', marginBottom: '10px' }}>{correoError}</span>}
+            {/* CAPA OSCURA SUAVE PARA LEER EL TEXTO BLANCO */}
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(10, 20, 30, 0.45)', zIndex: -1 }}></div>
+
+            {/* CAJA DE LOGIN ULTRA TRANSPARENTE (Glassmorphism Puro) */}
+            <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '400px', padding: '40px 30px', borderRadius: '20px', backgroundColor: 'rgba(255, 255, 255, 0.10)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.2)' }}>
                 
-                <label style={{ fontWeight: 'bold', display: 'block', marginTop: '10px' }}>Contraseña:</label>
-                <div style={{ position: 'relative', width: '100%', marginBottom: '15px' }}>
-                    <input 
-                        type={mostrarPassword ? "text" : "password"} 
-                        name="password" 
-                        onChange={handleChange} 
-                        required 
-                        style={{width: '100%', padding: '10px', boxSizing: 'border-box'}} 
-                    />
-                    {/* El botón del ojito */}
-                    <button 
-                        type="button"
-                        onClick={() => setMostrarPassword(!mostrarPassword)}
-                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}
-                    >
-                        {mostrarPassword ? "🙈" : "👁️"}
-                    </button>
+                <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                    {/* SVG LOGO CORREGIDO - LETRA N CUADRADA */}
+                    <svg width="70" height="70" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ margin: '0 auto' }}>
+                        <circle cx="50" cy="50" r="45" stroke="#00A8CC" strokeWidth="6"/>
+                        <path d="M30 72 V28 L70 72 V28" stroke="#2ecc71" strokeWidth="9" strokeLinecap="square" strokeLinejoin="miter"/>
+                    </svg>
+                    
+                    {/* TEXTO AHORA ES BLANCO PARA RESALTAR */}
+                    <h2 style={{ color: '#ffffff', marginTop: '15px', marginBottom: '5px', fontSize: '32px', fontWeight: '800' }}>
+                        <span style={{ color: '#00A8CC' }}>Nova</span>Salud
+                    </h2>
+                    <p style={{ color: '#cfd8dc', margin: 0, fontSize: '14px', fontWeight: 'bold', letterSpacing: '1px' }}>SISTEMA INTELIGENTE</p>
                 </div>
+                
+                {error && <div style={{ backgroundColor: 'rgba(229, 57, 53, 0.8)', color: '#ffffff', padding: '12px', marginBottom: '20px', borderRadius: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '13px', border: '1px solid rgba(255,255,255,0.3)' }}>{error}</div>}
 
-                <label style={{ fontWeight: 'bold' }}>Especialidad:</label>
-                <select name="especialidad" onChange={handleChange} required style={{width: '100%', marginBottom: '25px', padding: '10px', boxSizing: 'border-box'}}>
-                    <option value="">Seleccione...</option>
-                    <option value="Medicina General">Medicina General</option>
-                    <option value="Cardiología">Cardiología</option>
-                    <option value="Pediatría">Pediatría</option>
-                    <option value="Neurología">Neurología</option>
-                    <option value="Traumatología">Traumatología</option>
-                </select>
+                <form onSubmit={iniciarSesion}>
+                    <label style={labelStyle}>Correo:</label>
+                    <input type="email" name="correo" onChange={handleChange} required style={inputStyle(correoError)} placeholder="doctor@novasalud.com" disabled={isLoading} />
+                    {correoError && <span style={{ color: '#ff8a80', fontSize: '12px', display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>{correoError}</span>}
+                    
+                    <label style={labelStyle}>Contraseña:</label>
+                    <div style={{ position: 'relative', width: '100%', marginBottom: '15px' }}>
+                        <input 
+                            type={mostrarPassword ? "text" : "password"} 
+                            name="password" 
+                            onChange={handleChange} 
+                            required 
+                            style={{ ...inputStyle(false), marginBottom: 0 }} 
+                            disabled={isLoading}
+                        />
+                        <button 
+                            type="button"
+                            onClick={() => setMostrarPassword(!mostrarPassword)}
+                            disabled={isLoading}
+                            style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ffffff' }}
+                        >
+                            {mostrarPassword ? "🙈" : "👁️"}
+                        </button>
+                    </div>
 
-                <button type="submit" disabled={!!correoError} style={{width: '100%', padding: '12px', backgroundColor: correoError ? '#95a5a6' : '#0056b3', color: 'white', border: 'none', borderRadius: '4px', cursor: correoError ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '16px'}}>
-                    Entrar al Sistema
-                </button>
-            </form>
-            <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                <Link to="/registro" style={{ color: '#0056b3', textDecoration: 'none', fontWeight: 'bold' }}>¿Eres nuevo doctor? Registrarse</Link>
+                    <label style={labelStyle}>Especialidad:</label>
+                    <select name="especialidad" onChange={handleChange} required style={inputStyle(false)} disabled={isLoading}>
+                        <option value="" style={{color: '#000'}}>Seleccione su área...</option>
+                        <option value="Medicina General" style={{color: '#000'}}>Medicina General</option>
+                        <option value="Cardiología" style={{color: '#000'}}>Cardiología</option>
+                        <option value="Pediatría" style={{color: '#000'}}>Pediatría</option>
+                        <option value="Neurología" style={{color: '#000'}}>Neurología</option>
+                        <option value="Traumatología" style={{color: '#000'}}>Traumatología</option>
+                    </select>
+
+                    <button type="submit" disabled={!!correoError || isLoading} style={btnSubmitStyle(!!correoError || isLoading)}>
+                        {isLoading ? '⏳ VERIFICANDO...' : 'INGRESAR AL SISTEMA'}
+                    </button>
+                </form>
+
+                <div style={{ textAlign: 'center', marginTop: '25px' }}>
+                    <Link to="/registro" style={{ color: '#00A8CC', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>¿No tienes cuenta? Regístrate aquí</Link>
+                </div>
             </div>
+            
+            {/* INYECCIÓN CSS PARA PLACEHOLDERS */}
+            <style>{`
+                input::placeholder { color: rgba(255,255,255,0.6); }
+            `}</style>
         </div>
     );
 };
+
+// Estilos actualizados para textos blancos y cajas transparentes
+const labelStyle = { fontWeight: 'bold', color: '#ffffff', fontSize: '13px', display: 'block', marginBottom: '5px', textShadow: '0 1px 2px rgba(0,0,0,0.5)' };
+const inputStyle = (error) => ({
+    width: '100%', padding: '12px 15px', marginBottom: '15px', boxSizing: 'border-box', 
+    border: error ? '2px solid #e53935' : '1px solid rgba(255, 255, 255, 0.4)', borderRadius: '10px', 
+    outline: 'none', fontSize: '15px', transition: 'all 0.3s',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)', color: '#ffffff' 
+});
+const btnSubmitStyle = (disabled) => ({
+    width: '100%', padding: '15px', marginTop: '10px', 
+    backgroundColor: disabled ? 'rgba(255,255,255,0.3)' : '#00A8CC', color: '#ffffff', 
+    border: 'none', borderRadius: '10px', cursor: disabled ? 'not-allowed' : 'pointer', 
+    fontWeight: '900', fontSize: '15px', letterSpacing: '1px', transition: 'all 0.3s',
+    boxShadow: disabled ? 'none' : '0 4px 15px rgba(0, 168, 204, 0.4)'
+});
 
 export default Login;

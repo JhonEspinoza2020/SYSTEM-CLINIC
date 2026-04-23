@@ -52,4 +52,17 @@ public class PacienteJpaEntity {
 
     @Column(name = "id_doctor", length = 36)
     private String idDoctor;
+
+    @Column(name = "sexo", length = 10)
+    private String sexo;
+
+    @Column(name = "numero_cama")
+    private Integer numeroCama;
+
+    @Column(name = "historia_clinica", length = 1000)
+    private String historiaClinica;
+
+    @Column(name = "fecha_registro", length = 20)
+    private String fechaRegistro;
+
 }
