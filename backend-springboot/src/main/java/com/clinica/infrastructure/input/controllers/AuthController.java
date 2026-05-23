@@ -1,122 +1,85 @@
 package com.clinica.infrastructure.input.controllers;
 
-import com.clinica.infrastructure.output.entities.UsuarioJpaEntity;
-import com.clinica.infrastructure.output.repositories.UsuarioCrudRepository;
+import com.clinica.application.useCases.GestionarAuthUseCase;
+import com.clinica.domain.entities.Usuario;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:3000") 
 public class AuthController {
 
-    private final UsuarioCrudRepository usuarioRepository;
-    
-    // Almacén temporal en memoria para los códigos
-    private Map<String, String> codigosRecuperacion = new HashMap<>();
+    private final GestionarAuthUseCase gestionarAuthUseCase;
 
-    public AuthController(UsuarioCrudRepository usuarioRepository) {
-        this.usuarioRepository = usuarioRepository;
+    public AuthController(GestionarAuthUseCase gestionarAuthUseCase) {
+        this.gestionarAuthUseCase = gestionarAuthUseCase;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        String correo = credentials.get("correo");
-        String password = credentials.get("password");
-
-        System.out.println("\n===== 🕵️‍♂️ INTENTO DE LOGIN =====");
-        Optional<UsuarioJpaEntity> usuarioOpt = usuarioRepository.findByCorreo(correo);
-
-        if (usuarioOpt.isPresent()) {
-            UsuarioJpaEntity usuario = usuarioOpt.get();
-            if (usuario.getPassword().equals(password)) {
-                System.out.println("✅ ¡Contraseña CORRECTA! Abriendo puertas...");
-                usuario.setPassword(null);
-                return ResponseEntity.ok(usuario);
-            } else {
-                System.out.println("❌ ERROR: La contraseña no coincide.");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Contraseña incorrecta");
-            }
-        }
-        System.out.println("❌ ERROR: Ese correo NO EXISTE en MySQL.");
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Correo no encontrado");
+    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials) {
+        Map<String, Object> respuesta = gestionarAuthUseCase.iniciarSesion(
+                credentials.get("correo"),
+                credentials.get("password")
+        );
+        return ResponseEntity.ok(respuesta);
     }
 
     @PostMapping("/registro")
-    public ResponseEntity<?> registrarDoctor(@RequestBody UsuarioJpaEntity nuevoDoctor) {
-        try {
-            if (usuarioRepository.findByCorreo(nuevoDoctor.getCorreo()).isPresent()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El correo ya está registrado.");
-            }
-            nuevoDoctor.setId(java.util.UUID.randomUUID().toString());
-            nuevoDoctor.setUsername(nuevoDoctor.getCorreo());
-            nuevoDoctor.setRol("DOCTOR");
-            usuarioRepository.save(nuevoDoctor);
-            nuevoDoctor.setPassword(null);
-            return ResponseEntity.status(HttpStatus.CREATED).body(nuevoDoctor);
-        } catch (Exception e) {
-            e.printStackTrace(); 
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno al registrar");
-        }
+    public ResponseEntity<Usuario> registrarUsuario(@RequestBody Usuario nuevoUsuario) {
+        Usuario creado = gestionarAuthUseCase.registrarUsuario(nuevoUsuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
-    // ==========================================
-    // RUTAS PARA RECUPERAR CONTRASEÑA
-    // ==========================================
-
     @PostMapping("/recuperar")
-    public ResponseEntity<?> solicitarCodigoRecuperacion(@RequestParam String correo) {
-        Optional<UsuarioJpaEntity> usuarioOpt = usuarioRepository.findByCorreo(correo);
-        
-        if (!usuarioOpt.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "El correo no existe"));
-        }
-
-        String codigo = String.format("%06d", new Random().nextInt(999999));
-        codigosRecuperacion.put(correo, codigo);
-
-        System.out.println("\n=================================================");
-        System.out.println("🔐 SOLICITUD DE RECUPERACIÓN DE NOVASALUD");
-        System.out.println("📧 Correo: " + correo);
-        System.out.println("👉 CÓDIGO SECRETO: " + codigo);
-        System.out.println("=================================================\n");
-
-        return ResponseEntity.ok().body(Map.of("mensaje", "Código generado con éxito"));
+    public ResponseEntity<Map<String, String>> solicitarCodigoRecuperacion(@RequestParam String correo) {
+        gestionarAuthUseCase.solicitarCodigoRecuperacion(correo);
+        return ResponseEntity.ok(Map.of("mensaje", "Código generado y enviado con éxito"));
     }
 
     @PostMapping("/verificar-codigo")
-    public ResponseEntity<?> verificarCodigo(@RequestBody Map<String, String> request) {
-        String correo = request.get("correo");
-        String codigo = request.get("codigo");
-        String codigoGuardado = codigosRecuperacion.get(correo);
-
-        if (codigoGuardado != null && codigoGuardado.equals(codigo)) {
-            return ResponseEntity.ok().body(Map.of("mensaje", "Código válido"));
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Código inválido o expirado"));
+    public ResponseEntity<Map<String, String>> verificarCodigo(@RequestBody Map<String, String> request) {
+        gestionarAuthUseCase.verificarCodigo(request.get("correo"), request.get("codigo"));
+        return ResponseEntity.ok(Map.of("mensaje", "Código válido"));
     }
 
     @PutMapping("/nueva-password")
-    public ResponseEntity<?> actualizarPasswordOlvidada(@RequestBody Map<String, String> request) {
-        String correo = request.get("correo");
-        String nuevaPassword = request.get("password");
+    public ResponseEntity<Map<String, String>> actualizarPasswordOlvidada(@RequestBody Map<String, String> request) {
+        gestionarAuthUseCase.actualizarPassword(request.get("correo"), request.get("password"));
+        return ResponseEntity.ok(Map.of("mensaje", "Contraseña actualizada exitosamente"));
+    }
 
-        Optional<UsuarioJpaEntity> usuarioOpt = usuarioRepository.findByCorreo(correo);
-        
-        if (usuarioOpt.isPresent()) {
-            UsuarioJpaEntity usuario = usuarioOpt.get();
-            usuario.setPassword(nuevaPassword);
-            usuarioRepository.save(usuario); // 🔥 AHORA SÍ SE GUARDA EN MYSQL 🔥
-            codigosRecuperacion.remove(correo); // Borramos el código por seguridad
-            return ResponseEntity.ok().body(Map.of("mensaje", "Contraseña actualizada exitosamente"));
-        }
-        
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado"));
+    @PutMapping("/cambiar-password")
+    public ResponseEntity<Map<String, String>> cambiarPassword(@RequestBody Map<String, String> request) {
+        gestionarAuthUseCase.cambiarPasswordAutenticado(
+                request.get("correo"),
+                request.get("passwordActual"),
+                request.get("passwordNueva")
+        );
+        return ResponseEntity.ok(Map.of("mensaje", "Contraseña actualizada exitosamente"));
+    }
+
+    @GetMapping("/doctores-activos")
+    public ResponseEntity<List<Usuario>> obtenerDoctoresActivos() {
+        return ResponseEntity.ok(gestionarAuthUseCase.listarDoctoresActivos());
+    }
+
+    @GetMapping("/usuarios")
+    public ResponseEntity<List<Usuario>> obtenerTodosLosUsuarios() {
+        return ResponseEntity.ok(gestionarAuthUseCase.listarTodosUsuarios());
+    }
+
+    @PutMapping("/usuarios/{id}/estado")
+    public ResponseEntity<Usuario> cambiarEstadoUsuario(@PathVariable String id, @RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(gestionarAuthUseCase.cambiarEstadoUsuario(id, request.get("estado")));
+    }
+
+    @DeleteMapping("/usuarios/{id}")
+    public ResponseEntity<Map<String, String>> eliminarUsuario(@PathVariable String id) {
+        gestionarAuthUseCase.eliminarUsuario(id);
+        return ResponseEntity.ok(Map.of("mensaje", "Usuario eliminado del sistema."));
     }
 }

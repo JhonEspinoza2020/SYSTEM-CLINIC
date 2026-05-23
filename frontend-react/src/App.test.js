@@ -1,8 +1,19 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { saveSession, getSession, clearSession, hasRole } from './hooks/useAuth';
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+beforeEach(() => {
+  clearSession();
+});
+
+test('guarda y recupera sesión con token', () => {
+  saveSession('token-test', { id: '1', nombreCompleto: 'Admin', rol: 'ADMIN' });
+  expect(localStorage.getItem('authToken')).toBe('token-test');
+  expect(getSession().rol).toBe('ADMIN');
+  expect(hasRole('ADMIN')).toBe(true);
+});
+
+test('clearSession elimina datos', () => {
+  saveSession('x', { rol: 'DOCTOR' });
+  clearSession();
+  expect(getSession()).toBeNull();
+  expect(localStorage.getItem('authToken')).toBeNull();
 });

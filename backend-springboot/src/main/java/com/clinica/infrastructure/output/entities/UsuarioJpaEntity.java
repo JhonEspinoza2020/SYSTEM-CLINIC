@@ -23,6 +23,12 @@ public class UsuarioJpaEntity {
     private String nombreCompleto;
     private String correo;
     private String especialidad;
-    private String rol;
     private String dniDoctor;
+
+    // NUEVOS CAMPOS DE SEGURIDAD MULTIRROL
+    private String rol;    // ADMIN, DOCTOR, PACIENTE
+    private String estado; // ACTIVO, INACTIVO, PENDIENTE
+    
+    @Column(columnDefinition = "LONGTEXT")
+    private String firmaDigital; // Para la firma en Base64
 }

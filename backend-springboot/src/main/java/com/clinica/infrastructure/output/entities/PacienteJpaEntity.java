@@ -65,4 +65,19 @@ public class PacienteJpaEntity {
     @Column(name = "fecha_registro", length = 20)
     private String fechaRegistro;
 
+    @Column(name = "peso_nacer")
+    private Double pesoNacer;
+
+    @Column(name = "frecuencia_cardiaca")
+    private Integer frecuenciaCardiaca;
+
+    @Column(name = "escala_glasgow")
+    private Integer escalaGlasgow;
+
+    @Column(name = "temperatura")
+    private Double temperatura;
+
+    @Column(name = "nivel_dolor")
+    private Integer nivelDolor;
+
 }
