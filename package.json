@@ -1,4 +1,11 @@
 {
+  "name": "system-clinic",
+  "private": true,
+  "scripts": {
+    "start": "npm start --prefix frontend-react",
+    "start:frontend": "npm start --prefix frontend-react",
+    "start:ia": "powershell -ExecutionPolicy Bypass -File ./scripts/start-ia.ps1"
+  },
   "dependencies": {
     "axios": "^1.15.1"
   }

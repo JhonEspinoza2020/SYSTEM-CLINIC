@@ -1,26 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import AuthService from '../services/AuthService';
 import PacienteService from '../services/PacienteService';
+import { clearSession, getSession } from '../hooks/useAuth';
 import Swal from 'sweetalert2';
+import { theme } from '../styles/dashboardTheme';
+import { Icon } from '../components/icons/Icons';
 
 const DashboardAdmin = () => {
     const navigate = useNavigate();
     const [tab, setTab] = useState('doctores'); 
     const [usuarios, setUsuarios] = useState([]);
     const [pacientes, setPacientes] = useState([]);
-    const [seleccionado, setSeleccionado] = useState(null); 
+    const [seleccionado, setSeleccionado] = useState(null);
+    const adminLogueado = getSession() || {};
     
-    const adminLogueado = JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
-
     useEffect(() => {
-        if (adminLogueado.rol !== 'ADMIN') { navigate('/'); return; }
         cargarDatos();
-    }, [navigate, adminLogueado.rol]);
+    }, []);
 
     const cargarDatos = async () => {
         try {
-            const resU = await axios.get('http://localhost:8080/api/auth/usuarios');
+            const resU = await AuthService.listarUsuarios();
             setUsuarios(resU.data.filter(u => u.rol !== 'ADMIN'));
             const resP = await PacienteService.obtenerTodosLosPacientes();
             setPacientes(resP.data);
@@ -29,7 +30,7 @@ const DashboardAdmin = () => {
 
     const cambiarEstado = async (id, nuevoEstado, nombre) => {
         try {
-            await axios.put(`http://localhost:8080/api/auth/usuarios/${id}/estado`, { estado: nuevoEstado });
+            await AuthService.cambiarEstado(id, nuevoEstado);
             Swal.fire({ title: '¡Éxito!', text: `${nombre} ahora está ${nuevoEstado}`, icon: 'success', confirmButtonColor: '#00A8CC' });
             cargarDatos();
         } catch (error) { Swal.fire('Error', 'No se pudo actualizar el estado.', 'error'); }
@@ -47,7 +48,7 @@ const DashboardAdmin = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await axios.delete(`http://localhost:8080/api/auth/usuarios/${id}`);
+                    await AuthService.eliminarUsuario(id);
                     Swal.fire('Eliminado', 'Usuario borrado de la red NovaSalud.', 'success');
                     cargarDatos();
                 } catch (e) { Swal.fire('Error', 'No se pudo eliminar.', 'error'); }
@@ -58,11 +59,11 @@ const DashboardAdmin = () => {
     const verDetallePaciente = (p) => {
         const [hc, detalles] = (p.historiaClinica || "").split(' | ');
         Swal.fire({
-            title: `📋 Expediente: ${p.nombre} ${p.apellidoPaterno}`,
+            title: `Expediente: ${p.nombre} ${p.apellidoPaterno}`,
             html: `<div style="text-align: left; font-size: 14px; background: #f8fafc; padding: 15px; border-radius: 8px;">
                     <p><b>DNI:</b> ${p.dni}</p> <p><b>HC:</b> ${hc || 'N/A'}</p>
                     <p><b>Edad:</b> ${p.edad} años | <b>Sexo:</b> ${p.sexo}</p><hr/>
-                    <p style="color: #00A8CC; font-weight: bold;">🩺 Detalles Clínicos:</p>
+                    <p style="color: #00A8CC; font-weight: bold;">Detalles Clínicos:</p>
                     <p><i>${detalles || 'Sin detalles registrados.'}</i></p>
                    </div>`,
             confirmButtonColor: '#1e293b'
@@ -81,7 +82,7 @@ const DashboardAdmin = () => {
     };
 
     return (
-        <div style={{ backgroundColor: '#f1f5f9', minHeight: '100vh', fontFamily: 'Segoe UI, sans-serif' }}>
+        <div style={{ ...theme.pageBackground }}>
             
             <style>{`
                 @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -91,20 +92,20 @@ const DashboardAdmin = () => {
 
             <div style={{ backgroundColor: '#1e293b', color: 'white', padding: '15px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                 <div>
-                    <h2 style={{ margin: 0, fontSize: '20px' }}>🛡️ NovaSalud | Panel Administrativo</h2>
+                    <h2 style={{ margin: 0, fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}><Icon name="shield" size={20} color="#00A8CC" /> NovaSalud | Panel Administrativo</h2>
                     <span style={{ fontSize: '11px', color: '#94a3b8' }}>Usuario: {adminLogueado.nombreCompleto} (Director)</span>
                 </div>
-                <button onClick={() => { localStorage.removeItem('usuarioLogueado'); navigate('/'); }} style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Cerrar Sesión</button>
+                <button onClick={() => { clearSession(); navigate('/'); }} style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>Cerrar Sesión</button>
             </div>
 
             <div style={{ maxWidth: '1300px', margin: '30px auto', padding: '0 20px' }} className="animar-panel">
                 
                 <div style={{ display: 'flex', gap: '15px', marginBottom: '25px' }}>
-                    <button onClick={() => setTab('doctores')} style={tabBtnStyle(tab === 'doctores')}>👨‍⚕️ Personal Médico</button>
-                    <button onClick={() => setTab('pacientes')} style={tabBtnStyle(tab === 'pacientes')}>📑 Historial Global</button>
+                    <button onClick={() => setTab('doctores')} style={tabBtnStyle(tab === 'doctores')}><Icon name="doctor" size={14} color={tab === 'doctores' ? 'white' : '#1e293b'} /> Personal Médico</button>
+                    <button onClick={() => setTab('pacientes')} style={tabBtnStyle(tab === 'pacientes')}><Icon name="clipboard" size={14} color={tab === 'pacientes' ? 'white' : '#1e293b'} /> Historial Global</button>
                 </div>
 
-                <div style={{ backgroundColor: 'white', borderRadius: '15px', padding: '30px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', borderTop: '5px solid #1e293b' }}>
+                <div style={{ ...theme.card, padding: '30px', borderTop: '5px solid #1e293b' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ backgroundColor: '#f8fafc', textAlign: 'left', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
@@ -124,9 +125,9 @@ const DashboardAdmin = () => {
                                     <td style={tdStyle}><span style={badgeStyle(u.estado)}>{u.estado}</span></td>
                                     <td style={{...tdStyle, textAlign: 'center'}}>
                                         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                                            <button onClick={() => verFirmaDoctor(u)} style={btnIcon} title="Ver Firma">🖋️</button>
+                                            <button onClick={() => verFirmaDoctor(u)} style={btnIcon} title="Ver Firma"><Icon name="pen" size={14} /></button>
                                             <button onClick={() => cambiarEstado(u.id, u.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO', u.nombreCompleto)} style={u.estado === 'ACTIVO' ? btnOrange : btnGreen}>{u.estado === 'ACTIVO' ? 'Bloquear' : 'Activar'}</button>
-                                            <button onClick={() => eliminarUsuario(u.id, u.nombreCompleto)} style={btnRed}>🗑️</button>
+                                            <button onClick={() => eliminarUsuario(u.id, u.nombreCompleto)} style={btnRed}><Icon name="trash" size={14} color="white" /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -137,7 +138,7 @@ const DashboardAdmin = () => {
                                     <td style={tdStyle}><b style={{ color: p.riesgoPredicho === 'ALTO' ? '#ef4444' : '#22c55e' }}>{p.riesgoPredicho || 'NORMAL'}</b></td>
                                     <td style={tdStyle}><span style={badgeStyle('ACTIVO')}>ACTIVO</span></td>
                                     <td style={{...tdStyle, textAlign: 'center'}}>
-                                        <button onClick={() => verDetallePaciente(p)} style={btnCyan}>🔍 Ver Historia</button>
+                                        <button onClick={() => verDetallePaciente(p)} style={{ ...btnCyan, display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Icon name="search" size={14} color="white" /> Ver Historia</button>
                                     </td>
                                 </tr>
                             ))}
@@ -149,7 +150,7 @@ const DashboardAdmin = () => {
     );
 };
 
-const tabBtnStyle = (act) => ({ padding: '12px 24px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', backgroundColor: act ? '#1e293b' : '#cbd5e1', color: act ? 'white' : '#475569', transition: '0.3s' });
+const tabBtnStyle = (act) => ({ padding: '12px 24px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', backgroundColor: act ? '#1e293b' : '#cbd5e1', color: act ? 'white' : '#475569', transition: '0.3s', display: 'inline-flex', alignItems: 'center', gap: '8px' });
 const thStyle = { padding: '15px', borderBottom: '2px solid #f1f5f9' };
 const tdStyle = { padding: '15px', fontSize: '14px', color: '#1e293b' };
 const badgeEsp = { background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' };

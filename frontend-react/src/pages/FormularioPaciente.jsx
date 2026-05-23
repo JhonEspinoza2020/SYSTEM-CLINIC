@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PacienteService from '../services/PacienteService';
-import Swal from 'sweetalert2'; 
+import Swal from 'sweetalert2';
+import { sectionTitle } from '../styles/dashboardTheme'; 
 
 const FormularioPaciente = () => {
     const [nombre, setNombre] = useState('');
@@ -108,7 +109,12 @@ const FormularioPaciente = () => {
             numeroCama: numeroCamaGenerado, 
             historiaClinica: `${historiaClinicaGenerada} | ${detallesEspecialidad}`.substring(0, 990), 
             fechaRegistro: fechaSegura, 
-            idDoctor: idDoctor
+            idDoctor: idDoctor,
+            pesoNacer: pesoNacer ? parseFloat(pesoNacer) : null,
+            frecuenciaCardiaca: frecuenciaCardiaca ? parseInt(frecuenciaCardiaca, 10) : null,
+            escalaGlasgow: escalaGlasgow ? parseInt(escalaGlasgow, 10) : null,
+            temperatura: temperatura ? parseFloat(temperatura) : null,
+            nivelDolor: nivelDolor ? parseInt(nivelDolor, 10) : null,
         };
 
         PacienteService.registrarPaciente(nuevoPaciente)
@@ -156,7 +162,7 @@ const FormularioPaciente = () => {
                 </div>
 
                 <form onSubmit={guardarPaciente} style={{ padding: '40px' }}>
-                    <h4 style={{ color: '#1A365D', borderBottom: '2px solid #E2E8F0', paddingBottom: '10px', marginBottom: '25px', fontSize: '14px', textTransform: 'uppercase' }}>📝 Datos Generales del Paciente</h4>
+                    <h4 style={sectionTitle()}>Datos Generales del Paciente</h4>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                         <div><label style={labelStyle}>Nombres</label><input className="input-clinico" type="text" value={nombre} onChange={(e) => handleTextChange(e.target.value, setNombre)} required style={inputBaseStyle} disabled={isLoading}/></div>
@@ -195,7 +201,7 @@ const FormularioPaciente = () => {
 
                     {especialidad === 'Cardiología' && ( 
                         <div className="section-box" style={{ backgroundColor: '#F0F9FF', borderColor: '#00A8CC' }}> 
-                            <h4 style={{ color: '#1A365D', margin: '0 0 15px 0' }}>🩺 Triaje Cardiológico</h4> 
+                            <h4 style={sectionTitle('#1A365D')}>Triaje Cardiológico</h4> 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}> 
                                 <div>
                                     <label style={labelStyle}>Presión Arterial <span style={{color: '#718096', fontWeight:'normal'}}>(mmHg)</span></label>
@@ -208,7 +214,7 @@ const FormularioPaciente = () => {
                     )}
                     {especialidad === 'Pediatría' && ( 
                         <div className="section-box" style={{ backgroundColor: '#F0FFF4', borderColor: '#38A169' }}> 
-                            <h4 style={{ color: '#22543D', margin: '0 0 15px 0' }}>🧸 Ficha Pediátrica</h4> 
+                            <h4 style={sectionTitle('#22543D')}>Ficha Pediátrica</h4> 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}> 
                                 <div><label style={labelStyle}>Peso Nacer (kg)</label><input className="input-clinico" type="number" step="0.1" value={pesoNacer} onChange={(e)=>setPesoNacer(e.target.value)} style={inputBaseStyle} disabled={isLoading} /></div> 
                                 <div><label style={labelStyle}>Tutor Legal</label><input className="input-clinico" type="text" value={nombreTutor} onChange={(e)=>setNombreTutor(e.target.value)} style={inputBaseStyle} disabled={isLoading} /></div> 
@@ -218,7 +224,7 @@ const FormularioPaciente = () => {
                     )}
                     {especialidad === 'Neurología' && ( 
                         <div className="section-box" style={{ backgroundColor: '#F5F3FF', borderColor: '#8B5CF6' }}> 
-                            <h4 style={{ color: '#4C1D95', margin: '0 0 15px 0' }}>🧠 Evaluación Neurológica</h4> 
+                            <h4 style={sectionTitle('#4C1D95')}>Evaluación Neurológica</h4> 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}> 
                                 <div><label style={labelStyle}>Glasgow (3-15)</label><input className="input-clinico" type="number" value={escalaGlasgow} onChange={(e)=>setEscalaGlasgow(e.target.value)} style={inputBaseStyle} disabled={isLoading} /></div> 
                                 <div><label style={labelStyle}>Frec. Cefaleas</label><input className="input-clinico" type="text" value={frecuenciaCefaleas} onChange={(e)=>setFrecuenciaCefaleas(e.target.value)} style={inputBaseStyle} disabled={isLoading} /></div> 
@@ -227,7 +233,7 @@ const FormularioPaciente = () => {
                     )}
                     {especialidad === 'Traumatología' && ( 
                         <div style={{ padding: '25px', borderRadius: '12px', background: '#FFF7ED', borderLeft: '6px solid #ED8936', marginTop: '20px' }}> 
-                            <h4 style={{ color: '#7C2D12', margin: '0 0 15px 0' }}>🦴 Evaluación de Lesión Traumática</h4> 
+                            <h4 style={sectionTitle('#7C2D12')}>Evaluación de Lesión Traumática</h4> 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}> 
                                 <div>
                                     <label style={labelStyle}>Zona Anatómica Principal</label>
@@ -245,7 +251,7 @@ const FormularioPaciente = () => {
                     )}
                     {especialidad === 'Medicina General' && ( 
                         <div className="section-box" style={{ backgroundColor: '#FFF5F5', borderColor: '#E53E3E' }}> 
-                            <h4 style={{ color: '#742A2A', margin: '0 0 15px 0' }}>🩺 Triaje General</h4> 
+                            <h4 style={sectionTitle('#742A2A')}>Triaje General</h4> 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}> 
                                 <div><label style={labelStyle}>Temperatura (°C)</label><input className="input-clinico" type="number" step="0.1" value={temperatura} onChange={(e)=>setTemperatura(e.target.value)} style={inputBaseStyle} disabled={isLoading} /></div> 
                                 <div><label style={labelStyle}>Motivo Consulta</label><input className="input-clinico" type="text" value={motivoConsulta} onChange={(e)=>setMotivoConsulta(e.target.value)} style={inputBaseStyle} disabled={isLoading} /></div> 
@@ -254,7 +260,7 @@ const FormularioPaciente = () => {
                     )}
 
                     <button type="submit" disabled={isLoading} style={{ width: '100%', padding: '18px', background: isLoading ? '#718096' : '#1A365D', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '800', cursor: isLoading ? 'wait' : 'pointer', marginTop: '30px', boxShadow: isLoading ? 'none' : '0 4px 15px rgba(26, 54, 93, 0.3)', transition: 'all 0.3s' }}>
-                        {isLoading ? '⏳ REGISTRANDO EN NOVASALUD...' : 'FINALIZAR Y GUARDAR'}
+                        {isLoading ? 'REGISTRANDO EN NOVASALUD...' : 'FINALIZAR Y GUARDAR'}
                     </button>
                 </form>
             </div>

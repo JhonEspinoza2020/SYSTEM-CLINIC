@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import PacienteService from '../services/PacienteService';
-import axios from 'axios';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import Swal from 'sweetalert2'; 
+import PacienteRiesgoResumen from '../components/pacientes/PacienteRiesgoResumen';
+import PacienteEditModal from '../components/pacientes/PacienteEditModal';
+import { Icon } from '../components/icons/Icons';
+import { theme } from '../styles/dashboardTheme';
+import { calcularDatosGrafico, generarPDFMaestro, generarPDFIndividual, obtenerDoctorSesion } from '../utils/pacientePdf';
+import Swal from 'sweetalert2';
 
 const ListaPacientes = () => {
     const [pacientes, setPacientes] = useState([]);
@@ -37,7 +38,7 @@ const ListaPacientes = () => {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                axios.delete(`http://localhost:8080/api/pacientes/${id}`).then(() => {
+                PacienteService.eliminarPaciente(id).then(() => {
                     Swal.fire('Eliminado', 'Expediente borrado del sistema.', 'success');
                     if (pacienteSeleccionado?.id === id) setPacienteSeleccionado(null);
                     cargarPacientes();
@@ -76,155 +77,17 @@ const ListaPacientes = () => {
         p.dni.includes(busqueda)
     );
 
-    const calcularDatosGrafico = () => {
-        let alto = 0, medio = 0, bajo = 0, sinEvaluar = 0;
-        pacientes.forEach(p => {
-            if (p.riesgoPredicho === 'ALTO') alto++;
-            else if (p.riesgoPredicho === 'MEDIO') medio++;
-            else if (p.riesgoPredicho === 'BAJO') bajo++;
-            else sinEvaluar++;
-        });
-        return [
-            { name: 'Crítico (Alto)', value: alto, color: '#E53E3E' },
-            { name: 'Observación (Medio)', value: medio, color: '#ED8936' },
-            { name: 'Estable (Bajo)', value: bajo, color: '#38A169' },
-            ...(sinEvaluar > 0 ? [{ name: 'Sin Datos', value: sinEvaluar, color: '#A0AEC0' }] : [])
-        ];
-    };
-    const datosGrafico = calcularDatosGrafico();
+    const datosGrafico = calcularDatosGrafico(pacientes);
 
-    // ==========================================
-    // REPORTE MAESTRO DE LA CLÍNICA
-    // ==========================================
-    const generarPDFMaestro = () => {
-        if (pacientesFiltrados.length === 0) {
-            return Swal.fire('Sin datos', 'No hay registros médicos en la vista actual para exportar.', 'info');
-        }
-        const doc = new jsPDF();
-        const doctor = JSON.parse(localStorage.getItem('usuarioLogueado') || localStorage.getItem('doctorLogueado'));
-
-        doc.setFontSize(10); doc.setTextColor(0, 168, 204); doc.setFont("helvetica", "bold");
-        doc.text("NOVASALUD | RED HOSPITALARIA NACIONAL", 14, 12);
-        
-        doc.setFontSize(20); doc.setTextColor(26, 54, 93);
-        doc.text("REPORTE CLÍNICO CONSOLIDADO", 105, 25, { align: "center" });
-
-        doc.setFontSize(11); doc.setTextColor(74, 85, 104); doc.setFont("helvetica", "normal");
-        doc.text(`Médico Responsable: Dr(a). ${doctor.nombreCompleto}`, 14, 38);
-        doc.text(`Departamento: ${doctor.especialidad}`, 14, 44);
-        doc.text(`Total de Pacientes: ${pacientesFiltrados.length}`, 140, 38);
-        doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString()}`, 140, 44);
-
-        doc.setLineWidth(0.5); doc.setDrawColor(203, 213, 224);
-        doc.line(14, 49, 196, 49);
-
-        const tableColumn = ["Historia", "DNI", "Paciente", "Edad", "Sexo", "Riesgo IA"];
-        const tableRows = pacientesFiltrados.map(p => [
-            p.historiaClinica ? p.historiaClinica.split(' | ')[0] : 'N/A', 
-            p.dni, 
-            `${p.nombre} ${p.apellidoPaterno}`, 
-            p.edad,
-            p.sexo ? p.sexo.charAt(0) : '-', 
-            p.riesgoPredicho || 'N/E'
-        ]);
-
-        autoTable(doc, {
-            head: [tableColumn], body: tableRows, startY: 55, theme: 'striped',
-            headStyles: { fillColor: [26, 54, 93], textColor: 255 }, styles: { fontSize: 9, cellPadding: 3 }
-        });
-
-        // 🟢 MAGIA DE FIRMA DIGITAL (Reporte General)
-        const finalY = doc.lastAutoTable.finalY || 60;
-        if (doctor.firmaDigital) {
-            // Verifica que no se pase a otra página
-            let posY = finalY + 20;
-            if (posY > 250) { doc.addPage(); posY = 30; }
-            
-            // Dibuja la firma
-            doc.addImage(doctor.firmaDigital, 'PNG', 140, posY, 40, 20);
-            doc.setFontSize(9); doc.setTextColor(0,0,0);
-            doc.text("Firma del Médico Responsable", 140, posY + 25);
-            doc.line(135, posY + 21, 185, posY + 21); // Línea sobre el texto
-        }
-
-        doc.save(`Reporte_NovaSalud_${doctor.nombreCompleto.replace(/\s/g, '_')}.pdf`);
+    const exportarPDFMaestro = () => {
+        if (pacientesFiltrados.length === 0) return Swal.fire('Sin datos', 'No hay registros para exportar.', 'info');
+        generarPDFMaestro(pacientesFiltrados, obtenerDoctorSesion());
     };
 
-    // ==========================================
-    // FICHA INDIVIDUAL DEL PACIENTE
-    // ==========================================
-    const generarPDFIndividual = (paciente) => {
-        const doc = new jsPDF();
-        const doctor = JSON.parse(localStorage.getItem('usuarioLogueado') || localStorage.getItem('doctorLogueado'));
-
-        doc.setFontSize(10); doc.setTextColor(0, 168, 204); doc.setFont("helvetica", "bold");
-        doc.text("NOVASALUD | SISTEMA DE EVALUACIÓN PREDICTIVA", 14, 12);
-
-        doc.setFontSize(22); doc.setTextColor(26, 54, 93);
-        doc.text("EXPEDIENTE CLÍNICO DIGITAL", 105, 25, { align: "center" });
-
-        doc.setFontSize(11); doc.setTextColor(100); doc.setFont("helvetica", "normal");
-        doc.text(`Especialista Tratante: Dr(a). ${doctor.nombreCompleto}`, 105, 33, { align: "center" });
-
-        // Extraemos detalles adicionales de historia clinica si existen
-        let hcPura = paciente.historiaClinica || 'Sin asignar';
-        let detallesExtras = '';
-        if(hcPura.includes(' | ')) {
-            const partes = hcPura.split(' | ');
-            hcPura = partes[0];
-            detallesExtras = partes[1];
-        }
-
-        const filasPDF = [
-            ["Nombre Completo:", `${paciente.nombre} ${paciente.apellidoPaterno} ${paciente.apellidoMaterno}`],
-            ["Identidad (DNI):", paciente.dni],
-            ["N° de Historia Clínica:", hcPura],
-            ["Fecha de Registro:", paciente.fechaRegistro || 'N/A'],
-            ["Perfil Biológico:", `${paciente.edad} años | Sexo: ${paciente.sexo || 'N/A'} | Sangre: ${paciente.tipoSangre}`],
-            ["Antecedentes Alérgicos:", paciente.alergiasConocidas || 'Negativo']
-        ];
-
-        if (detallesExtras) {
-            filasPDF.push(["DATOS DE ESPECIALIDAD:", detallesExtras]);
-        }
-
-        autoTable(doc, {
-            startY: 45, theme: 'plain', styles: { fontSize: 11, cellPadding: 4, textColor: [45, 55, 72] },
-            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60, textColor: [26, 54, 93] } },
-            body: filasPDF
-        });
-
-        const finalY = doc.lastAutoTable.finalY || 120;
-        doc.setDrawColor(26, 54, 93); doc.setFillColor(247, 250, 252);
-        doc.roundedRect(14, finalY + 10, 182, 65, 4, 4, 'FD'); 
-
-        doc.setFontSize(14); doc.setTextColor(229, 62, 62); doc.setFont("helvetica", "bold");
-        doc.text("VALIDACIÓN DE INTELIGENCIA ARTIFICIAL", 20, finalY + 22);
-
-        doc.setFontSize(11); doc.setTextColor(45, 55, 72);
-        doc.text(`Nivel de Riesgo Calculado: ${paciente.riesgoPredicho || 'Pendiente de evaluación'}`, 20, finalY + 32);
-        doc.text("Recomendación Médica Sugerida:", 20, finalY + 42);
-        
-        doc.setFont("helvetica", "italic");
-        const recomendacion = doc.splitTextToSize(`"${paciente.recomendacionIa || 'Analizando variables médicas...'}"`, 170);
-        doc.text(recomendacion, 20, finalY + 50);
-
-        // 🟢 MAGIA DE FIRMA DIGITAL (Receta del paciente)
-        if (doctor.firmaDigital) {
-            let posYFirma = finalY + 85;
-            if (posYFirma > 250) { doc.addPage(); posYFirma = 30; }
-            
-            doc.addImage(doctor.firmaDigital, 'PNG', 140, posYFirma, 40, 20);
-            doc.setFontSize(9); doc.setTextColor(0,0,0); doc.setFont("helvetica", "normal");
-            doc.text(`Firma Electrónica: Dr(a). ${doctor.nombreCompleto}`, 125, posYFirma + 25);
-            doc.line(130, posYFirma + 21, 190, posYFirma + 21); 
-        }
-
-        doc.save(`Expediente_${paciente.dni}_NovaSalud.pdf`);
-    };
+    const exportarPDFIndividual = (paciente) => generarPDFIndividual(paciente, obtenerDoctorSesion());
 
     return (
-        <div style={{ backgroundColor: '#F8FAFC', padding: '30px 0' }}>
+        <div style={{ background: 'transparent', padding: '10px 0' }}>
             <div className="animacion-entrada" style={{ width: '100%', margin: '0 auto' }}>
                 
                 <style>{`
@@ -241,7 +104,7 @@ const ListaPacientes = () => {
                     .input-buscar-nova:focus { border-color: #00A8CC !important; box-shadow: 0 0 0 3px rgba(0, 168, 204, 0.15) !important; }
                 `}</style>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '20px 35px', borderRadius: '15px', marginBottom: '25px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderLeft: '8px solid #1A365D' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', ...theme.card, padding: '20px 35px', marginBottom: '25px', borderLeft: '8px solid #1A365D' }}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div style={{ background: '#1A365D', padding: '10px', borderRadius: '12px', marginRight: '15px' }}>
                             <svg width="35" height="35" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -254,45 +117,15 @@ const ListaPacientes = () => {
                             <span style={{ color: '#718096', fontSize: '12px', fontWeight: '700', letterSpacing: '1px' }}>CENTRO DE COMANDO MÉDICO</span>
                         </div>
                     </div>
-                    <button onClick={generarPDFMaestro} disabled={pacientesFiltrados.length === 0} style={{ backgroundColor: pacientesFiltrados.length === 0 ? '#CBD5E0' : '#1A365D', color: 'white', padding: '14px 28px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px', transition: '0.3s' }}>
-                        📥 Exportar Reporte de Clínica
+                    <button onClick={exportarPDFMaestro} disabled={pacientesFiltrados.length === 0} style={{ backgroundColor: pacientesFiltrados.length === 0 ? '#CBD5E0' : '#1A365D', color: 'white', padding: '14px 28px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px', transition: '0.3s' }}>
+                        <Icon name="download" size={16} color="white" /> Exportar Reporte de Clínica
                     </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '20px', marginBottom: '30px' }}>
-                    <div className="card-resumen-nova" style={{ borderTopColor: '#00A8CC' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#718096' }}>POBLACIÓN ACTIVA</span>
-                        <h2 style={{ fontSize: '42px', margin: '10px 0', color: '#1A365D' }}>{pacientes.length}</h2>
-                        <p style={{ margin: 0, color: '#A0AEC0', fontSize: '13px' }}>Expedientes registrados</p>
-                    </div>
-                    <div className="card-resumen-nova" style={{ borderTopColor: '#E53E3E' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#718096' }}>ALERTAS CRÍTICAS (IA)</span>
-                        <h2 style={{ fontSize: '42px', margin: '10px 0', color: '#E53E3E' }}>{datosGrafico[0]?.value || 0}</h2>
-                        <p style={{ margin: 0, color: '#A0AEC0', fontSize: '13px' }}>Casos de riesgo alto</p>
-                    </div>
-                    <div className="card-resumen-nova" style={{ display: 'flex', alignItems: 'center' }}>
-                        <div style={{ flex: 1, height: '140px' }}>
-                            <ResponsiveContainer>
-                                <PieChart>
-                                    <Pie data={datosGrafico} innerRadius={40} outerRadius={60} dataKey="value" stroke="none">
-                                        {datosGrafico.map((e, i) => <Cell key={i} fill={e.color} />)}
-                                    </Pie>
-                                    <Tooltip />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div style={{ paddingLeft: '25px', textAlign: 'left' }}>
-                            {datosGrafico.map(g => (
-                                <div key={g.name} style={{ fontSize: '11px', marginBottom: '5px', color: '#4A5568', fontWeight: 'bold' }}>
-                                    <span style={{ color: g.color }}>●</span> {g.name}: {g.value}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                <PacienteRiesgoResumen pacientes={pacientes} datosGrafico={datosGrafico} />
 
                 <div style={{ textAlign: 'left', marginBottom: '25px' }}>
-                    <input className="input-buscar-nova" type="text" placeholder="🔍 Buscar expediente por Nombre, Apellido o DNI..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ width: '45%', padding: '16px 25px', borderRadius: '35px', border: '2px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
+                    <input className="input-buscar-nova" type="text" placeholder="Buscar expediente por Nombre, Apellido o DNI..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ width: '45%', padding: '16px 25px 16px 48px', borderRadius: '35px', border: '2px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
                 </div>
 
                 <div style={{ borderRadius: '15px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)', background: 'white' }}>
@@ -317,9 +150,9 @@ const ListaPacientes = () => {
                                             </span>
                                         </td>
                                         <td style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                                            <button className="btn-ia-nova" onClick={() => setPacienteSeleccionado(p)}>🧠 ANALISIS IA</button>
-                                            <button onClick={() => iniciarEdicion(p)} style={{ background: '#ED8936', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>✏️EDITAR</button>
-                                            <button onClick={() => eliminarPaciente(p.id, p.nombre)} style={{ background: '#E53E3E', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>🗑️ELIMINAR</button>
+                                            <button className="btn-ia-nova" onClick={() => setPacienteSeleccionado(p)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Icon name="brain" size={14} color="white" /> ANÁLISIS IA</button>
+                                            <button onClick={() => iniciarEdicion(p)} style={{ background: '#ED8936', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Icon name="edit" size={14} color="white" /> EDITAR</button>
+                                            <button onClick={() => eliminarPaciente(p.id, p.nombre)} style={{ background: '#E53E3E', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Icon name="trash" size={14} color="white" /> ELIMINAR</button>
                                         </td>
                                     </tr>
                                 ))
@@ -331,10 +164,11 @@ const ListaPacientes = () => {
                 {pacienteSeleccionado && (
                     <div className="animacion-entrada" style={{ backgroundColor: '#1A365D', padding: '35px', borderRadius: '20px', marginTop: '35px', color: 'white', textAlign: 'left', boxShadow: '0 15px 35px rgba(26, 54, 93, 0.3)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '15px', marginBottom: '25px' }}>
-                            <h3 style={{ margin: 0, fontSize: '22px', display: 'flex', alignItems: 'center' }}>
-                                🧠 Diagnóstico NovaSalud: {pacienteSeleccionado.nombre} {pacienteSeleccionado.apellidoPaterno}
+                            <h3 style={{ margin: 0, fontSize: '22px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Icon name="brain" size={22} color="white" />
+                                Diagnóstico NovaSalud: {pacienteSeleccionado.nombre} {pacienteSeleccionado.apellidoPaterno}
                             </h3>
-                            <button onClick={() => setPacienteSeleccionado(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer', opacity: 0.7 }}>✖</button>
+                            <button onClick={() => setPacienteSeleccionado(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.7, display: 'flex' }} title="Cerrar"><Icon name="close" size={22} color="white" /></button>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
                             <div style={{ background: 'white', padding: '30px', borderRadius: '15px', textAlign: 'center', color: '#2D3748' }}>
@@ -350,8 +184,8 @@ const ListaPacientes = () => {
                             </div>
                             <div style={{ background: 'white', padding: '30px', borderRadius: '15px', color: '#2D3748' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                    <h4 style={{ margin: 0, fontSize: '18px', color: '#1A365D' }}>💡 Protocolo Médico Sugerido</h4>
-                                    <button onClick={() => generarPDFIndividual(pacienteSeleccionado)} style={{ background: '#38A169', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>📄 Exportar Ficha + Firma</button>
+                                    <h4 style={{ margin: 0, fontSize: '18px', color: '#1A365D', display: 'flex', alignItems: 'center', gap: '8px' }}><Icon name="lightbulb" size={18} color="#1A365D" /> Protocolo Médico Sugerido</h4>
+                                    <button onClick={() => exportarPDFIndividual(pacienteSeleccionado)} style={{ background: '#38A169', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px' }}><Icon name="file" size={16} color="white" /> Exportar Ficha + Firma</button>
                                 </div>
                                 <div style={{ padding: '20px', borderLeft: '5px solid #00A8CC', background: '#F8FAFC', fontStyle: 'italic', color: '#4A5568', fontSize: '16px', lineHeight: '1.6' }}>
                                     "{pacienteSeleccionado.recomendacionIa || 'Análisis en proceso por el motor NovaSalud.'}"
@@ -362,52 +196,17 @@ const ListaPacientes = () => {
                 )}
 
                 {pacienteAEditar && (
-                    <div className="animacion-entrada" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(26, 54, 93, 0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-                        <div style={{ backgroundColor: '#FFFFFF', padding: '40px', borderRadius: '20px', width: '100%', maxWidth: '550px', textAlign: 'left', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <h3 style={{ marginTop: 0, color: '#1A365D', borderBottom: '2px solid #EDF2F7', paddingBottom: '15px', fontSize: '22px' }}>Actualizar Expediente Médico</h3>
-                            <p style={{ fontSize: '12px', color: '#718096', marginBottom: '25px' }}>DNI y N° Historia bloqueados por protocolos de integridad NovaSalud.</p>
-                            
-                            <form onSubmit={guardarEdicion}>
-                                <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                                    <div style={{flex: 1}}><label style={labelModalStyle}>Nombres</label><input type="text" name="nombre" value={pacienteAEditar.nombre} onChange={manejarCambioEdicion} required style={inputModalStyle} disabled={isSavingEdit}/></div>
-                                    <div style={{flex: 1}}><label style={labelModalStyle}>Apellidos</label><input type="text" name="apellidoPaterno" value={pacienteAEditar.apellidoPaterno} onChange={manejarCambioEdicion} required style={inputModalStyle} disabled={isSavingEdit}/></div>
-                                </div>
-                                
-                                <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                                    <div style={{flex: 1}}><label style={labelModalStyle}>Edad Actual</label><input type="number" name="edad" value={pacienteAEditar.edad} onChange={manejarCambioEdicion} required style={inputModalStyle} disabled={isSavingEdit}/></div>
-                                    <div style={{flex: 1}}>
-                                        <label style={labelModalStyle}>Género</label>
-                                        <select name="sexo" value={pacienteAEditar.sexo || ''} onChange={manejarCambioEdicion} required style={inputModalStyle} disabled={isSavingEdit}>
-                                            <option value="Masculino">Masculino</option><option value="Femenino">Femenino</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <label style={labelModalStyle}>Cuadro de Alergias (Crítico para Diagnóstico IA)</label>
-                                <input 
-                                    type="text" list="sugerencias-alergias-editar" name="alergiasConocidas" 
-                                    value={pacienteAEditar.alergiasConocidas} onChange={manejarCambioEdicion} style={inputModalStyle} disabled={isSavingEdit}
-                                />
-                                <datalist id="sugerencias-alergias-editar">
-                                    <option value="Ninguna" /><option value="Desconocidas" /><option value="Penicilina" /><option value="Látex" />
-                                </datalist>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '35px' }}>
-                                    <button type="button" onClick={() => setPacienteAEditar(null)} disabled={isSavingEdit} style={{ backgroundColor: '#CBD5E0', color: '#4A5568', border: 'none', padding: '14px 25px', borderRadius: '10px', cursor: isSavingEdit ? 'wait' : 'pointer', fontWeight: '800' }}>Cancelar</button>
-                                    <button type="submit" disabled={isSavingEdit} style={{ backgroundColor: isSavingEdit ? '#718096' : '#00A8CC', color: '#FFFFFF', border: 'none', padding: '14px 25px', borderRadius: '10px', cursor: isSavingEdit ? 'wait' : 'pointer', fontWeight: '800', boxShadow: isSavingEdit ? 'none' : '0 4px 15px rgba(0, 168, 204, 0.4)', transition: '0.3s' }}>
-                                        {isSavingEdit ? '⏳ EVALUANDO...' : 'GUARDAR Y REEVALUAR IA'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                    <PacienteEditModal
+                        paciente={pacienteAEditar}
+                        isSaving={isSavingEdit}
+                        onChange={manejarCambioEdicion}
+                        onSave={guardarEdicion}
+                        onClose={() => setPacienteAEditar(null)}
+                    />
                 )}
             </div>
         </div>
     );
 };
 
-const labelModalStyle = { fontWeight: '800', color: '#4A5568', fontSize: '11px', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' };
-const inputModalStyle = { width: '100%', padding: '14px', border: '1.5px solid #E2E8F0', borderRadius: '10px', outline: 'none', background: '#F8FAFC', fontSize: '15px' };
-
-export default ListaPacientes;  
+export default ListaPacientes;

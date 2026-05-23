@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import CitaService from '../services/CitaService';
+import { WS_BASE } from '../api/client';
 import Swal from 'sweetalert2';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
@@ -11,7 +12,7 @@ const PanelCitasDoctor = () => {
     const cargarCitas = useCallback(async () => {
         if (!doctorLogueado.id) return;
         try {
-            const res = await axios.get(`http://localhost:8080/api/citas/doctor/${doctorLogueado.id}`);
+            const res = await CitaService.listarPorDoctor(doctorLogueado.id);
             setCitas(res.data.reverse());
         } catch (error) {
             console.error("Error al cargar las citas del doctor", error);
@@ -23,13 +24,13 @@ const PanelCitasDoctor = () => {
         if (!doctorLogueado.id) return;
         
         const client = new Client({
-            webSocketFactory: () => new SockJS('http://localhost:8080/ws-novasalud'),
+            webSocketFactory: () => new SockJS(`${WS_BASE}/ws-novasalud`),
             reconnectDelay: 5000,
             onConnect: () => {
                 client.subscribe(`/topic/notificaciones/${doctorLogueado.id}`, (mensaje) => {
                     Swal.fire({
                         toast: true, position: 'top-end', icon: 'info',
-                        title: '🔔 ¡Nueva Cita Recibida!',
+                        title: 'Nueva Cita Recibida',
                         text: 'Un paciente acaba de solicitar un turno.',
                         showConfirmButton: false, timer: 4000, timerProgressBar: true
                     });
@@ -56,7 +57,7 @@ const PanelCitasDoctor = () => {
         }
 
         try {
-            await axios.put(`http://localhost:8080/api/citas/${citaId}/estado`, { estado: nuevoEstado, motivoRechazo: motivoRechazo });
+            await CitaService.actualizarEstado(citaId, nuevoEstado, motivoRechazo);
             Swal.fire({title: '¡Actualizado!', text: `Cita ${nuevoEstado.toLowerCase()}.`, icon: 'success', confirmButtonColor: '#00A8CC'});
             cargarCitas(); 
         } catch (error) { Swal.fire('Error', 'No se pudo actualizar la cita.', 'error'); }

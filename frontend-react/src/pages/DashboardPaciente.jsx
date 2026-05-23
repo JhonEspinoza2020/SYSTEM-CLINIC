@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import CitaService from '../services/CitaService';
+import AuthService from '../services/AuthService';
+import { clearSession } from '../hooks/useAuth';
+import { theme } from '../styles/dashboardTheme';
 import Swal from 'sweetalert2';
-import SockJS from 'sockjs-client';
-import { Client } from '@stomp/stompjs';
 
 const DashboardPaciente = () => {
     const navigate = useNavigate();
@@ -30,14 +31,14 @@ const DashboardPaciente = () => {
 
     const cargarCitas = async (pacienteId) => {
         try {
-            const res = await axios.get(`http://localhost:8080/api/citas/paciente/${pacienteId}`);
+            const res = await CitaService.listarPorPaciente(pacienteId);
             setCitas(res.data);
         } catch (error) { console.error("Error al cargar citas"); }
     };
 
     const cargarDoctores = async () => {
         try {
-            const res = await axios.get('http://localhost:8080/api/auth/doctores-activos');
+            const res = await AuthService.listarDoctoresActivos();
             setDoctores(res.data);
         } catch (error) { console.error("Error al cargar doctores"); }
     };
@@ -55,18 +56,7 @@ const DashboardPaciente = () => {
 
         try {
             const payload = { ...nuevaCita, pacienteId: paciente.id, nombrePaciente: paciente.nombreCompleto };
-            await axios.post('http://localhost:8080/api/citas', payload);
-            
-            try {
-                const client = new Client({
-                    webSocketFactory: () => new SockJS('http://localhost:8080/ws-novasalud'),
-                    onConnect: () => {
-                        client.publish({ destination: `/topic/notificaciones/${nuevaCita.doctorId}`, body: JSON.stringify({ mensaje: '¡Tienes una nueva solicitud de cita!' }) });
-                        setTimeout(() => client.deactivate(), 1000); 
-                    }
-                });
-                client.activate();
-            } catch(e) { console.log("WS No disponible"); }
+            await CitaService.solicitar(payload);
 
             Swal.fire({title: '¡Cita Solicitada!', text: 'El doctor revisará tu solicitud.', icon: 'success', confirmButtonColor: '#00A8CC'});
             setMostrarModal(false);
@@ -78,7 +68,7 @@ const DashboardPaciente = () => {
     const doctoresFiltrados = doctores.filter(doc => doc.especialidad && doc.especialidad.includes(nuevaCita.especialidad));
 
     return (
-        <div style={{ padding: '30px', backgroundColor: '#f0f4f8', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ padding: '30px', ...theme.pageBackground }}>
             <style>{`
                 @keyframes slideIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
                 .modal-anim { animation: slideIn 0.3s ease-out forwards; }
@@ -97,7 +87,7 @@ const DashboardPaciente = () => {
                             <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '13px' }}>Bienvenido(a), {paciente.nombreCompleto}</p>
                         </div>
                     </div>
-                    <button onClick={() => { localStorage.removeItem('usuarioLogueado'); navigate('/'); }} style={{ padding: '10px 20px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Cerrar Sesión</button>
+                    <button onClick={() => { clearSession(); navigate('/'); }} style={{ padding: '10px 20px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Cerrar Sesión</button>
                 </div>
 
                 {/* BOTÓN NUEVA CITA */}
@@ -107,7 +97,7 @@ const DashboardPaciente = () => {
                 </button>
 
                 {/* TABLA DE CITAS */}
-                <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '30px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+                <div style={{ ...theme.card, padding: '30px' }}>
                     <h3 style={{ marginTop: 0, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px', fontSize: '18px' }}>Mi Historial de Solicitudes</h3>
                     {citas.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>No tienes citas programadas aún. Usa el botón superior para agendar una.</div>

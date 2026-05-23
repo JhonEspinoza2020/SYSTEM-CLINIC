@@ -36,7 +36,12 @@ public class PacienteRepositoryAdapter implements PacienteRepositoryPort {
                 .alergiasConocidas(paciente.getAlergiasConocidas())
                 .riesgoPredicho(paciente.getRiesgoPredicho())
                 .recomendacionIa(paciente.getRecomendacionIa())
-                .idDoctor(paciente.getIdDoctor()) 
+                .idDoctor(paciente.getIdDoctor())
+                .pesoNacer(paciente.getPesoNacer())
+                .frecuenciaCardiaca(paciente.getFrecuenciaCardiaca())
+                .escalaGlasgow(paciente.getEscalaGlasgow())
+                .temperatura(paciente.getTemperatura())
+                .nivelDolor(paciente.getNivelDolor())
                 .build();
 
         PacienteJpaEntity guardado = crudRepository.save(entity);
@@ -77,6 +82,11 @@ public class PacienteRepositoryAdapter implements PacienteRepositoryPort {
                 .numeroCama(entity.getNumeroCama())
                 .historiaClinica(entity.getHistoriaClinica())
                 .fechaRegistro(entity.getFechaRegistro())
+                .pesoNacer(entity.getPesoNacer())
+                .frecuenciaCardiaca(entity.getFrecuenciaCardiaca())
+                .escalaGlasgow(entity.getEscalaGlasgow())
+                .temperatura(entity.getTemperatura())
+                .nivelDolor(entity.getNivelDolor())
                 .build();
     }
 }

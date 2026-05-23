@@ -1,6 +1,7 @@
 package com.clinica.application.useCases;
 
 import com.clinica.domain.entities.Paciente;
+
 import java.util.List;
 
 public interface GestionarPacienteUseCase {

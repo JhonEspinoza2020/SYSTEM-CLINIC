@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import AuthService from '../services/AuthService';
 import Swal from 'sweetalert2';
 
 const RegistroDoctor = () => {
@@ -46,14 +46,17 @@ const RegistroDoctor = () => {
                 estado: 'PENDIENTE' 
             };
 
-            await axios.post('http://localhost:8080/api/auth/registro', payload);
+            await AuthService.registro(payload);
             
             Swal.fire({
                 title: 'Solicitud Enviada',
                 text: 'Su registro como Médico ha sido enviado. Un administrador verificará sus datos antes de activar su cuenta.',
                 icon: 'success',
                 confirmButtonColor: '#2ecc71'
-            }).then(() => navigate('/'));
+            }).then(() => {
+                setDoctor({ nombreCompleto: '', dniDoctor: '', correo: '', password: '', firmaDigital: '' });
+                navigate('/', { replace: true, state: { fromRegistro: true } });
+            });
         } catch (err) {
             Swal.fire('Error', err.response?.data || 'Error en el servidor.', 'error');
             setIsLoading(false);
@@ -95,7 +98,7 @@ const RegistroDoctor = () => {
                     <input type="email" name="correo" placeholder="doctor@novasalud.com" onChange={handleChange} required style={inputStyle} disabled={isLoading} />
                     
                     <label style={labelStyle}>Contraseña de Acceso</label>
-                    <input type="password" name="password" placeholder="Mínimo 8 caracteres" onChange={handleChange} required style={inputStyle} disabled={isLoading} />
+                    <input type="password" name="password" placeholder="Mínimo 8 caracteres" onChange={handleChange} required autoComplete="new-password" style={inputStyle} disabled={isLoading} />
                     
                     {/* ÁREA CLÍNICA */}
                     <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>

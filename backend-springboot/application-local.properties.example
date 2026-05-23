@@ -1,0 +1,10 @@
+# Copiar a application-local.properties y cargar con:
+# spring.config.additional-location=application-local.properties
+
+DB_USERNAME=root
+DB_PASSWORD=tu_password_mysql
+MAIL_USERNAME=tu_correo@gmail.com
+MAIL_PASSWORD=tu_app_password_gmail
+JWT_SECRET=CambiaEstaClavePorUnaDeAlMenos32CaracteresSeguros
+ADMIN_EMAIL=admin@novasalud.com
+ADMIN_PASSWORD=AdminNova2026!

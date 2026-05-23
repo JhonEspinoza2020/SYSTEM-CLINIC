@@ -1,23 +1,24 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:8080/api/pacientes';
+import apiClient from '../api/client';
 
 class PacienteService {
-    // 🚀 CAMBIO: Agregamos /todos para que coincida con el controlador de Java
-    obtenerTodosLosPacientes() { 
-        return axios.get(`${API_URL}/todos`); 
+    obtenerTodosLosPacientes() {
+        return apiClient.get('/api/pacientes/todos');
     }
-    
-    obtenerPacientesPorDoctor(idDoctor) { 
-        return axios.get(`${API_URL}/doctor/${idDoctor}`); 
+
+    obtenerPacientesPorDoctor(idDoctor) {
+        return apiClient.get(`/api/pacientes/doctor/${idDoctor}`);
     }
-    
-    registrarPaciente(paciente) { 
-        return axios.post(API_URL, paciente); 
+
+    registrarPaciente(paciente) {
+        return apiClient.post('/api/pacientes', paciente);
     }
 
     actualizarPaciente(id, pacienteActualizado) {
-        return axios.put(`${API_URL}/${id}`, pacienteActualizado);
+        return apiClient.put(`/api/pacientes/${id}`, pacienteActualizado);
+    }
+
+    eliminarPaciente(id) {
+        return apiClient.delete(`/api/pacientes/${id}`);
     }
 }
 

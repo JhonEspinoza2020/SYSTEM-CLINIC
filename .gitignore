@@ -1,0 +1,33 @@
+# Java / Maven
+backend-springboot/target/
+backend-springboot/.idea/
+*.class
+*.jar
+*.war
+
+# Secrets locales
+backend-springboot/application-local.properties
+**/application-local.properties
+
+# Node
+node_modules/
+frontend-react/node_modules/
+frontend-react/build/
+frontend-react/.env
+frontend-react/.env.local
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.pyc

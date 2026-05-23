@@ -1,0 +1,4 @@
+ALTER TABLE pacientes
+    ADD COLUMN IF NOT EXISTS hallazgo_imagen VARCHAR(500) NULL,
+    ADD COLUMN IF NOT EXISTS confianza_imagen DOUBLE NULL,
+    ADD COLUMN IF NOT EXISTS tipo_estudio_imagen VARCHAR(80) NULL;

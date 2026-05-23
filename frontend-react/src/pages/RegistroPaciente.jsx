@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import AuthService from '../services/AuthService';
 import Swal from 'sweetalert2';
 
 const RegistroPaciente = () => {
@@ -37,14 +37,17 @@ const RegistroPaciente = () => {
                 estado: 'ACTIVO' 
             }; 
 
-            await axios.post('http://localhost:8080/api/auth/registro', payload);
+            await AuthService.registro(payload);
             
             Swal.fire({
                 title: '¡Registro Exitoso!',
                 text: 'Tu historial médico digital ha sido creado. Ya puedes iniciar sesión.',
                 icon: 'success',
                 confirmButtonColor: '#00A8CC'
-            }).then(() => { navigate('/'); });
+            }).then(() => {
+                setPaciente({ nombreCompleto: '', dni: '', correo: '', password: '', confirmarPassword: '' });
+                navigate('/', { replace: true, state: { fromRegistro: true } });
+            });
             
         } catch (err) {
             const mensajeError = typeof err.response?.data === 'string' ? err.response.data : 'Error al registrar la cuenta.';
@@ -94,10 +97,10 @@ const RegistroPaciente = () => {
                         </label>
                         
                         <label style={labelStyle}>Crear Contraseña</label>
-                        <input type="password" name="password" placeholder="Mínimo 8 caracteres" onChange={handleChange} required style={{...inputStyle, marginBottom: '15px'}} disabled={isLoading} />
+                        <input type="password" name="password" placeholder="Mínimo 8 caracteres" onChange={handleChange} required autoComplete="new-password" style={{...inputStyle, marginBottom: '15px'}} disabled={isLoading} />
                         
                         <label style={labelStyle}>Confirmar Contraseña</label>
-                        <input type="password" name="confirmarPassword" placeholder="Repite la contraseña" onChange={handleChange} required style={{...inputStyle, marginBottom: '0'}} disabled={isLoading} />
+                        <input type="password" name="confirmarPassword" placeholder="Repite la contraseña" onChange={handleChange} required autoComplete="new-password" style={{...inputStyle, marginBottom: '0'}} disabled={isLoading} />
                     </div>
                     
                     <button type="submit" disabled={isLoading} style={btnSubmitStyle(isLoading)}>
