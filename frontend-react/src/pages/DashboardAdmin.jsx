@@ -82,7 +82,7 @@ const DashboardAdmin = () => {
     };
 
     return (
-        <div style={{ ...theme.pageBackground }}>
+        <div data-cy="dashboard-admin" style={{ ...theme.pageBackground }}>
             
             <style>{`
                 @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }

@@ -15,6 +15,9 @@ frontend-react/node_modules/
 frontend-react/build/
 frontend-react/.env
 frontend-react/.env.local
+frontend-react/cypress/videos/
+frontend-react/cypress/screenshots/
+frontend-react/cypress/reports/
 
 # IDE
 .vscode/

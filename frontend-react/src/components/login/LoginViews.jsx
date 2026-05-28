@@ -21,6 +21,7 @@ export const LoginForm = ({
         <input
             type="email"
             name="correo"
+            data-cy="login-correo"
             value={credentials.correo}
             onChange={onChange}
             autoComplete="off"
@@ -34,6 +35,7 @@ export const LoginForm = ({
             <input
                 type={mostrarPassword ? 'text' : 'password'}
                 name="password"
+                data-cy="login-password"
                 value={credentials.password}
                 onChange={onChange}
                 autoComplete="off"
@@ -47,7 +49,7 @@ export const LoginForm = ({
                 <Icon name={mostrarPassword ? 'eye-off' : 'eye'} size={18} color="#ffffff" />
             </button>
         </div>
-        <button type="submit" disabled={!!correoError || isLoading} style={btnSubmitStyle(!!correoError || isLoading)}>
+        <button type="submit" data-cy="login-submit" disabled={!!correoError || isLoading} style={btnSubmitStyle(!!correoError || isLoading)}>
             {isLoading ? 'VALIDANDO CREDENCIALES...' : 'INGRESAR AL SISTEMA'}
         </button>
         <div style={{ textAlign: 'center', marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -63,13 +65,13 @@ export const DoctorSpecialtyPicker = ({ doctorTemp, especialidadSeleccionada, se
         <p style={{ color: '#cbd5e1', fontSize: '13px', marginBottom: '20px' }}>Seleccione el área de consulta para su turno actual.</p>
         <div style={{ textAlign: 'left', marginBottom: '20px' }}>
             <label style={labelStyle}>Especialidad Activa:</label>
-            <select value={especialidadSeleccionada} onChange={(e) => setEspecialidadSeleccionada(e.target.value)} required style={{ ...inputStyle(false), backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#333', cursor: 'pointer' }}>
+            <select data-cy="doctor-especialidad" value={especialidadSeleccionada} onChange={(e) => setEspecialidadSeleccionada(e.target.value)} required style={{ ...inputStyle(false), backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#333', cursor: 'pointer' }}>
                 {doctorTemp?.especialidad ? doctorTemp.especialidad.split(',').map((esp, index) => (
                     <option key={index} value={esp.trim()}>{esp.trim()}</option>
                 )) : <option value="Medicina General">Medicina General</option>}
             </select>
         </div>
-        <button type="submit" style={btnSubmitStyle(false)}>CONFIRMAR E INGRESAR</button>
+        <button type="submit" data-cy="doctor-confirmar-especialidad" style={btnSubmitStyle(false)}>CONFIRMAR E INGRESAR</button>
     </form>
 );
 

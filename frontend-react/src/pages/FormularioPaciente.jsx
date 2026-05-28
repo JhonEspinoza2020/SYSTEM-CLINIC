@@ -161,31 +161,31 @@ const FormularioPaciente = () => {
                     </div>
                 </div>
 
-                <form onSubmit={guardarPaciente} style={{ padding: '40px' }}>
+                <form data-cy="form-paciente" onSubmit={guardarPaciente} style={{ padding: '40px' }}>
                     <h4 style={sectionTitle()}>Datos Generales del Paciente</h4>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                        <div><label style={labelStyle}>Nombres</label><input className="input-clinico" type="text" value={nombre} onChange={(e) => handleTextChange(e.target.value, setNombre)} required style={inputBaseStyle} disabled={isLoading}/></div>
-                        <div><label style={labelStyle}>Ap. Paterno</label><input className="input-clinico" type="text" value={apellidoPaterno} onChange={(e) => handleTextChange(e.target.value, setApellidoPaterno)} required style={inputBaseStyle} disabled={isLoading}/></div>
-                        <div><label style={labelStyle}>Ap. Materno</label><input className="input-clinico" type="text" value={apellidoMaterno} onChange={(e) => handleTextChange(e.target.value, setApellidoMaterno)} required style={inputBaseStyle} disabled={isLoading}/></div>
+                        <div><label style={labelStyle}>Nombres</label><input data-cy="paciente-nombre" className="input-clinico" type="text" value={nombre} onChange={(e) => handleTextChange(e.target.value, setNombre)} required style={inputBaseStyle} disabled={isLoading}/></div>
+                        <div><label style={labelStyle}>Ap. Paterno</label><input data-cy="paciente-apellido-paterno" className="input-clinico" type="text" value={apellidoPaterno} onChange={(e) => handleTextChange(e.target.value, setApellidoPaterno)} required style={inputBaseStyle} disabled={isLoading}/></div>
+                        <div><label style={labelStyle}>Ap. Materno</label><input data-cy="paciente-apellido-materno" className="input-clinico" type="text" value={apellidoMaterno} onChange={(e) => handleTextChange(e.target.value, setApellidoMaterno)} required style={inputBaseStyle} disabled={isLoading}/></div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                         <div>
                             <label style={labelStyle}>DNI / Documento</label>
-                            <input className="input-clinico" type="text" value={dni} onChange={handleDniChange} maxLength="8" required style={{ ...inputBaseStyle, border: dniError ? '2px solid #E53E3E' : '1px solid #CBD5E1' }} disabled={isLoading}/>
+                            <input data-cy="paciente-dni" className="input-clinico" type="text" value={dni} onChange={handleDniChange} maxLength="8" required style={{ ...inputBaseStyle, border: dniError ? '2px solid #E53E3E' : '1px solid #CBD5E1' }} disabled={isLoading}/>
                             {dniError && <span style={{ color: '#E53E3E', fontSize: '10px', fontWeight: 'bold' }}>{dniError}</span>}
                         </div>
-                        <div><label style={labelStyle}>Edad</label><input className="input-clinico" type="number" value={edad} onChange={(e) => setEdad(e.target.value)} required min="0" max="120" style={inputBaseStyle} disabled={isLoading}/></div>
+                        <div><label style={labelStyle}>Edad</label><input data-cy="paciente-edad" className="input-clinico" type="number" value={edad} onChange={(e) => setEdad(e.target.value)} required min="0" max="120" style={inputBaseStyle} disabled={isLoading}/></div>
                         <div>
                             <label style={labelStyle}>Sexo</label>
-                            <select className="input-clinico" value={sexo} onChange={(e) => setSexo(e.target.value)} required style={{...inputBaseStyle, background: 'white'}} disabled={isLoading}>
+                            <select data-cy="paciente-sexo" className="input-clinico" value={sexo} onChange={(e) => setSexo(e.target.value)} required style={{...inputBaseStyle, background: 'white'}} disabled={isLoading}>
                                 <option value="">Seleccionar...</option><option value="Masculino">Masculino</option><option value="Femenino">Femenino</option>
                             </select>
                         </div>
                         <div>
                             <label style={labelStyle}>G. Sanguíneo</label>
-                            <select className="input-clinico" value={tipoSangre} onChange={(e) => setTipoSangre(e.target.value)} required style={{...inputBaseStyle, background: 'white'}} disabled={isLoading}>
+                            <select data-cy="paciente-tipo-sangre" className="input-clinico" value={tipoSangre} onChange={(e) => setTipoSangre(e.target.value)} required style={{...inputBaseStyle, background: 'white'}} disabled={isLoading}>
                                 <option value="">Tipo...</option><option value="O+">O+</option><option value="O-">O-</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option>
                             </select>
                         </div>
@@ -193,7 +193,7 @@ const FormularioPaciente = () => {
 
                     <div style={{ marginBottom: '30px' }}>
                         <label style={labelStyle}>Alergias Conocidas</label>
-                        <input className="input-clinico" type="text" list="sugerencias-alergias" value={alergiasConocidas} onChange={(e) => setAlergiasConocidas(e.target.value)} placeholder="Ej: Penicilina, Látex, Ninguna..." style={inputBaseStyle} disabled={isLoading} />
+                        <input data-cy="paciente-alergias" className="input-clinico" type="text" list="sugerencias-alergias" value={alergiasConocidas} onChange={(e) => setAlergiasConocidas(e.target.value)} placeholder="Ej: Penicilina, Látex, Ninguna..." style={inputBaseStyle} disabled={isLoading} />
                         <datalist id="sugerencias-alergias">
                             <option value="Ninguna" /><option value="Desconocidas" /><option value="Penicilina" /><option value="Látex" /><option value="Frutos secos (Maní, Nueces)" />
                         </datalist>
@@ -253,13 +253,13 @@ const FormularioPaciente = () => {
                         <div className="section-box" style={{ backgroundColor: '#FFF5F5', borderColor: '#E53E3E' }}> 
                             <h4 style={sectionTitle('#742A2A')}>Triaje General</h4> 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}> 
-                                <div><label style={labelStyle}>Temperatura (°C)</label><input className="input-clinico" type="number" step="0.1" value={temperatura} onChange={(e)=>setTemperatura(e.target.value)} style={inputBaseStyle} disabled={isLoading} /></div> 
+                                <div><label style={labelStyle}>Temperatura (°C)</label><input data-cy="paciente-temperatura" className="input-clinico" type="number" step="0.1" value={temperatura} onChange={(e)=>setTemperatura(e.target.value)} style={inputBaseStyle} disabled={isLoading} /></div> 
                                 <div><label style={labelStyle}>Motivo Consulta</label><input className="input-clinico" type="text" value={motivoConsulta} onChange={(e)=>setMotivoConsulta(e.target.value)} style={inputBaseStyle} disabled={isLoading} /></div> 
                             </div> 
                         </div> 
                     )}
 
-                    <button type="submit" disabled={isLoading} style={{ width: '100%', padding: '18px', background: isLoading ? '#718096' : '#1A365D', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '800', cursor: isLoading ? 'wait' : 'pointer', marginTop: '30px', boxShadow: isLoading ? 'none' : '0 4px 15px rgba(26, 54, 93, 0.3)', transition: 'all 0.3s' }}>
+                    <button type="submit" data-cy="paciente-submit" disabled={isLoading} style={{ width: '100%', padding: '18px', background: isLoading ? '#718096' : '#1A365D', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '800', cursor: isLoading ? 'wait' : 'pointer', marginTop: '30px', boxShadow: isLoading ? 'none' : '0 4px 15px rgba(26, 54, 93, 0.3)', transition: 'all 0.3s' }}>
                         {isLoading ? 'REGISTRANDO EN NOVASALUD...' : 'FINALIZAR Y GUARDAR'}
                     </button>
                 </form>

@@ -20,11 +20,18 @@
     "sweetalert2": "^11.26.24",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "cypress": "^13.17.0",
+    "cypress-mochawesome-reporter": "^3.8.2"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "cypress:run:report": "cypress run --reporter cypress-mochawesome-reporter"
   },
   "eslintConfig": {
     "extends": [
