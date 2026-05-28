@@ -54,6 +54,7 @@ const DoctorDashboardLayout = () => {
                         <NavLink
                             key={item.to}
                             to={item.to}
+                            data-cy={`nav-${item.to.split('/').pop()}`}
                             style={({ isActive }) => ({
                                 display: 'flex',
                                 alignItems: 'center',

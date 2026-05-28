@@ -5,7 +5,7 @@ const PacienteRiesgoResumen = ({ pacientes, datosGrafico }) => (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '20px', marginBottom: '30px' }}>
         <div className="card-resumen-nova" style={{ borderTopColor: '#00A8CC' }}>
             <span style={{ fontSize: '12px', fontWeight: '800', color: '#718096' }}>POBLACIÓN ACTIVA</span>
-            <h2 style={{ fontSize: '42px', margin: '10px 0', color: '#1A365D' }}>{pacientes.length}</h2>
+            <h2 data-cy="poblacion-activa" style={{ fontSize: '42px', margin: '10px 0', color: '#1A365D' }}>{pacientes.length}</h2>
             <p style={{ margin: 0, color: '#A0AEC0', fontSize: '13px' }}>Expedientes registrados</p>
         </div>
         <div className="card-resumen-nova" style={{ borderTopColor: '#E53E3E' }}>

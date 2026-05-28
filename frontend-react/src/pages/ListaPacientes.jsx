@@ -125,11 +125,11 @@ const ListaPacientes = () => {
                 <PacienteRiesgoResumen pacientes={pacientes} datosGrafico={datosGrafico} />
 
                 <div style={{ textAlign: 'left', marginBottom: '25px' }}>
-                    <input className="input-buscar-nova" type="text" placeholder="Buscar expediente por Nombre, Apellido o DNI..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ width: '45%', padding: '16px 25px 16px 48px', borderRadius: '35px', border: '2px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
+                    <input data-cy="buscar-paciente" className="input-buscar-nova" type="text" placeholder="Buscar expediente por Nombre, Apellido o DNI..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ width: '45%', padding: '16px 25px 16px 48px', borderRadius: '35px', border: '2px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
                 </div>
 
                 <div style={{ borderRadius: '15px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)', background: 'white' }}>
-                    <table className="tabla-clinica-nova">
+                    <table data-cy="tabla-pacientes" className="tabla-clinica-nova">
                         <thead>
                             <tr>
                                 <th>EXPEDIENTE</th><th>DNI</th><th>PACIENTE REGISTRADO</th><th>RIESGO IA</th><th style={{ textAlign: 'center' }}>GESTIÓN MÉDICA</th>
@@ -150,7 +150,7 @@ const ListaPacientes = () => {
                                             </span>
                                         </td>
                                         <td style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                                            <button className="btn-ia-nova" onClick={() => setPacienteSeleccionado(p)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Icon name="brain" size={14} color="white" /> ANÁLISIS IA</button>
+                                            <button data-cy="btn-analisis-ia" className="btn-ia-nova" onClick={() => setPacienteSeleccionado(p)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Icon name="brain" size={14} color="white" /> ANÁLISIS IA</button>
                                             <button onClick={() => iniciarEdicion(p)} style={{ background: '#ED8936', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Icon name="edit" size={14} color="white" /> EDITAR</button>
                                             <button onClick={() => eliminarPaciente(p.id, p.nombre)} style={{ background: '#E53E3E', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Icon name="trash" size={14} color="white" /> ELIMINAR</button>
                                         </td>
@@ -162,7 +162,7 @@ const ListaPacientes = () => {
                 </div>
 
                 {pacienteSeleccionado && (
-                    <div className="animacion-entrada" style={{ backgroundColor: '#1A365D', padding: '35px', borderRadius: '20px', marginTop: '35px', color: 'white', textAlign: 'left', boxShadow: '0 15px 35px rgba(26, 54, 93, 0.3)' }}>
+                    <div data-cy="panel-analisis-ia" className="animacion-entrada" style={{ backgroundColor: '#1A365D', padding: '35px', borderRadius: '20px', marginTop: '35px', color: 'white', textAlign: 'left', boxShadow: '0 15px 35px rgba(26, 54, 93, 0.3)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '15px', marginBottom: '25px' }}>
                             <h3 style={{ margin: 0, fontSize: '22px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <Icon name="brain" size={22} color="white" />
@@ -188,7 +188,7 @@ const ListaPacientes = () => {
                                     <button onClick={() => exportarPDFIndividual(pacienteSeleccionado)} style={{ background: '#38A169', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px' }}><Icon name="file" size={16} color="white" /> Exportar Ficha + Firma</button>
                                 </div>
                                 <div style={{ padding: '20px', borderLeft: '5px solid #00A8CC', background: '#F8FAFC', fontStyle: 'italic', color: '#4A5568', fontSize: '16px', lineHeight: '1.6' }}>
-                                    "{pacienteSeleccionado.recomendacionIa || 'Análisis en proceso por el motor NovaSalud.'}"
+                                    <span data-cy="texto-recomendacion-ia">"{pacienteSeleccionado.recomendacionIa || 'Análisis en proceso por el motor NovaSalud.'}"</span>
                                 </div>
                             </div>
                         </div>

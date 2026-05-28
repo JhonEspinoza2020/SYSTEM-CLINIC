@@ -66,7 +66,7 @@ const PanelCitasDoctor = () => {
     const citasPendientes = citas.filter(c => c.estado === 'PENDIENTE');
 
     return (
-        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', marginBottom: '25px', borderTop: '5px solid #00A8CC', fontFamily: 'system-ui, sans-serif' }}>
+        <div data-cy="panel-citas" style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', marginBottom: '25px', borderTop: '5px solid #00A8CC', fontFamily: 'system-ui, sans-serif' }}>
             <h3 style={{ marginTop: 0, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00A8CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                 Gestión de Citas Activas

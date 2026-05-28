@@ -1,0 +1,10 @@
+{
+  "nombre": "Maria",
+  "apellidoPaterno": "Lopez",
+  "apellidoMaterno": "Garcia",
+  "edad": 45,
+  "sexo": "Femenino",
+  "tipoSangre": "A+",
+  "alergias": "Ninguna",
+  "temperatura": 36.7
+}

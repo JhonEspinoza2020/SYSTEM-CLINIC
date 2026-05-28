@@ -26,4 +26,17 @@ Si ya tenías tablas creadas por Hibernate antes:
 
 Tras login, menú lateral: **Citas** · **Registrar paciente** · **Pacientes y análisis IA** · **Mi perfil**
 
+## Pruebas Cypress (video / episodios)
+
+Ver [docs/PRUEBAS-CYPRESS.md](docs/PRUEBAS-CYPRESS.md)
+
+```powershell
+cd frontend-react
+npm run cypress:open
+# o con reporte HTML:
+npm run cypress:run:report
+```
+
+Data masiva: `.\scripts\seed-pacientes-masivos.ps1 -Cantidad 50`
+
 ## Tests backend (opcional)
